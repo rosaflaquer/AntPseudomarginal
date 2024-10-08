@@ -24,7 +24,6 @@ def rv_from_data(data,nbins=100):
 @njit
 def distr_from_histo(histo_bin,histo_cums):
     idx = np.where(histo_cums>=np.random.uniform(0,1))[0]
-    print("idx",idx)
     return histo_bin[idx[0]]
 
 @njit
@@ -38,7 +37,6 @@ def histo_from_data(data,nbins=50):
 
 @njit
 def prior_rvs(prior_pars):
-    print(prior_pars)
     par_beta = prior_pars[0]
     par_gamma = prior_pars[1]
     values = np.zeros(2)
@@ -106,7 +104,7 @@ def MCMC(M,n_estim,param_0,L0,proposal_kernel,prior,prior_pars,mean_kern,cov_ker
         else:
             parameters[m] = parameters[m-1]
             Ls[m] = Ls[m-1]
-        print("Likelihood",Ls[m],L_star)
+        if m%int(M*0.1) == 0: print("Likelihood",parameters[m],Ls[m],L_star)
     return parameters,Ls
 
 
@@ -139,7 +137,7 @@ def bootstrap(Lstar,data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_para
         for k in prange(R):
         #for k in range(R):
             state_resampled[k] = state[np.where(cum_w>=np.random.uniform(0,1))[0][0]]
-        print(i,Lstar,Y,state,state_resampled)
+        #print(i,Lstar,Y,state,state_resampled)
         state = state_resampled
     return Lstar
 

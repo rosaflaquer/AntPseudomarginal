@@ -29,14 +29,14 @@ t_fin = 10 #final evolution time #TODO: final observation time for trajectory
 dwr = 0.1 #observation time #TODO: steps between observations of the trajectory
 v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
 param = np.array([v,l,phi,Mu,Sigma,th0]) #"known" model parameters
-beta, delta = 4,0.1
+beta, delta = 4,0.3
 ks = np.array([beta, delta]) #This is what we want to inffer!
 
 
 #Simulation setup.
 h = 0.01 #time step
-Nt = int(t_fin//h)
-iwr = int(dwr//h)
+Nt = int(t_fin/h)
+iwr = int(dwr/h)
 Ntraj = 150
 Ntraj_ic = 1
 epsilon = 0.01
@@ -61,7 +61,7 @@ for i in range(Ntraj):
         df_temp["id_traj"] = f"ic{i}_tr{j}"
         df = pd.concat([df,df_temp],ignore_index=True)
 #%%
-df.to_csv(os.path.join(data_dir,f"Synthetic-beta_{beta}-delta_{delta}-noise_{epsilon}.dat"),index=False)
+df.to_csv(os.path.join(data_dir,f"Synthetic-beta_{beta}-delta_{delta}-time_{t_fin}.dat"),index=False)
 #%%
 #Noisy points
 noisy_data = data + np.random.normal(0,0.01,np.shape(data))

@@ -1,7 +1,4 @@
 #%%
-"""
-Cite numba-scipy!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-"""
 
 import numpy as np
 import os
@@ -32,6 +29,7 @@ Initial definitions
 #1) Load observations
 data_dir = os.path.join(proj_path,"Data","Synthetic")
 data_file = os.listdir(data_dir)[0]
+data_file= "Synthetic-beta_4-delta_0.3-time_10.dat"
 datadf = pd.read_csv(os.path.join(data_dir,data_file))
 id_traj = datadf["id_traj"].unique()
 Ntrajs = len(id_traj)
@@ -55,18 +53,19 @@ pth,bth,cth = histo_from_data(data[:,2,0])
 #%%
 #3) Prior distribution for the parameters 
 
-min_beta, max_beta = 3.95, 4.05
-min_delta, max_delta = 0.095, 0.105
+min_beta, max_beta = 0.1, 15
+min_delta, max_delta = 0.001, 0.5
 prior_pars = np.ones((2,2))
 prior_pars[0][0],prior_pars[0][1] = min_beta, max_beta 
 prior_pars[1][0],prior_pars[1][1] = min_delta, max_delta
 param_0 = prior_rvs(prior_pars)
+param_0 = [2.0,0.2]
+print(param_0)
 #%% 
 # 4-5) Define the number of particles to use and the MC steps
-R = 5 #number of particles
-M = 10 #number of MC steps
+R = 20 #number of particles
+M = 65000 #number of MC steps
 
-#%%
 # 6) initial value for the likelihood. 
 # TODO: Use the log likelihood (once implemented)
 
@@ -76,9 +75,11 @@ L0 = 1
 # 7) Definitions of the proposals and obs likely
 n_estim = 2
 mean_kern = np.zeros(n_estim)
-cov_kern = np.array([[0.01,0],[0,0.01]]) #TODO change that to sth that makes sense
-#obs_li_param = np.array([0.25,0.25,0.05]) #np.ones(3)*0.25 #TODO change that to sth that makes sense
-obs_li_param = np.ones(3) #TODO change that to sth that makes sense
+cov_kern = np.array([[0.1,0],[0,0.05]]) #TODO change that to sth that makes sense
+#obs_li_param = np.array([0.2,0.2,0.075]) #np.ones(3)*0.25 #TODO change that to sth that makes sense
+#obs_li_param = np.array([0.5,0.2,0.025]) #np.ones(3)*0.25 #TODO change that to sth that makes sense
+obs_li_param = np.array([0.25,0.1,0.025]) #np.ones(3)*0.25 #TODO change that to sth that makes sense
+#obs_li_param = np.ones(3)*0.2 #TODO change that to sth that makes sense
 
 #%%
 
@@ -90,7 +91,35 @@ v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
 known_param = np.array([v,l,phi,Mu,Sigma,th0])
 
 # %%
+print(param_0)
 for traj in data[:1]:
     parameters,Ls = MCMC(M,n_estim,param_0,L0,proposal_kernel_rv,prior_dist,prior_pars,mean_kern,cov_kern,bootstrap,traj,R,model_step,obs_like,obs_li_param,h,sqh,known_param)
-    print(parameters,Ls)
+#print(parameters,Ls)
+# %%
+nbins = 10
+minimums = [0,2500,5000,10000,]
+minimums = np.int32(np.array([0,0.1,0.2,0.5,0.75])*M)
+for i,minim in enumerate(minimums):
+    n, bins = np.histogram(parameters[minim:,0],bins=nbins,density=True)
+    bins = (bins[1:]+bins[:-1])*0.5
+    plt.plot(bins,n,label=minim)
+    #plt.hist(parameters[minim:,0],bins=nbins,density=True,label=minim)
+    plt.axvline(param_0[0],color="black",ls="--")
+    plt.axvline(4,color="black")
+    plt.axvline(np.mean(parameters[minim:,0]),color=colors[i]) #,color="grey")
+    plt.xlabel(r"$\beta$")
+    plt.legend()
+plt.show()
+for i,minim in enumerate(minimums):
+    n, bins = np.histogram(parameters[minim:,1],bins=nbins,density=True)
+    bins = (bins[1:]+bins[:-1])*0.5
+    plt.plot(bins,n,label=minim)
+    #plt.hist(parameters[minim:,0],bins=nbins,density=True,label=minim)
+    plt.axvline(param_0[1],color="black",ls="--")
+    plt.axvline(0.3,color="black")
+    plt.axvline(np.mean(parameters[minim:,1]),color=colors[i])  #,color="grey")
+    plt.xlabel(r"$\delta$")
+    plt.legend()
+plt.show()
+
 # %%
