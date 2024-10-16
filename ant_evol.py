@@ -25,11 +25,11 @@ if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 #%%
 #Generate a trajectory from the data #TODO: substitute this step for actual data one working.
 
-t_fin = 10 #final evolution time #TODO: final observation time for trajectory
-dwr = 0.1 #observation time #TODO: steps between observations of the trajectory
+t_fin = 20 
+dwr = 0.1 
 v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
 param = np.array([v,l,phi,Mu,Sigma,th0]) #"known" model parameters
-beta, delta = 8,0.1
+beta, delta = 4,0.3
 ks = np.array([beta, delta]) #This is what we want to inffer!
 
 
@@ -43,11 +43,12 @@ epsilon = 0.01
 
 
 #%%
-#Generate data #TODO: this will be: upload trajectory.
+
 names = ["Time","x","y","theta","id_traj"]
 df = pd.DataFrame(columns=names)
 for i in range(Ntraj):
-    ci = np.array([0,0,np.random.uniform(np.pi/2-0.5,np.pi/2)]) #TODO: initial condition from the trajectory
+    #ci = np.array([0,0,np.random.uniform(np.pi/2-0.5,np.pi/2)]) #TODO: initial condition from the trajectory
+    ci = np.array([0,0,np.random.uniform(3*np.pi/2-0.5,3*np.pi/2)]) #TODO: initial condition from the trajectory
     data = lib_model.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,Ntraj_ic)
     xindx = np.arange(0,Ntraj_ic*len(ci),len(ci))
     yindx = np.arange(1,Ntraj_ic*len(ci),len(ci))
@@ -61,30 +62,23 @@ for i in range(Ntraj):
         df_temp["id_traj"] = f"ic{i}_tr{j}"
         df = pd.concat([df,df_temp],ignore_index=True)
 #%%
-name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
-data_dir = os.path.join(proj_path,"Data","Synthetic",name)
-if not(os.path.exists(data_dir)): os.mkdir(data_dir)
-df.to_csv(os.path.join(data_dir,f"Synthetic-{name}.dat"),index=False)
+#name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
+#data_dir = os.path.join(proj_path,"Data","Synthetic",name)
+#if not(os.path.exists(data_dir)): os.mkdir(data_dir)
+#df.to_csv(os.path.join(data_dir,f"Synthetic-{name}.dat"),index=False)
 #%%
-#Noisy points
-noisy_data = data + np.random.normal(0,0.01,np.shape(data))
-ts = np.arange(0,int(Nt/iwr))*dwr
-# %%
+
 #plot data
 fig, ax = plt.subplots(ncols=1,nrows=4,figsize=(11,6*4))
-for i in range(Ntraj):
-    ax[0].plot(noisy_data[xindx[i]],noisy_data[yindx[i]],label="noisy")
-    ax[0].plot(data[xindx[i]],data[yindx[i]],label="original")
+for idx in df["id_traj"].unique():
+    traj = df[df["id_traj"]==idx]
+    ax[0].plot(traj.x,traj.y)
     ax[0].set(xlabel="x",ylabel="y")
-    ax[0].legend()
-    ax[1].plot(ts,noisy_data[xindx[i]])
-    ax[1].plot(ts,data[xindx[i]])
+    ax[1].plot(traj.Time,traj.x)
     ax[1].set(xlabel="t",ylabel="x")
-    ax[2].plot(ts,noisy_data[yindx[i]])
-    ax[2].plot(ts,data[yindx[i]])
+    ax[2].plot(traj.Time,traj.y)
     ax[2].set(xlabel="t",ylabel="y")
-    ax[3].plot(ts,noisy_data[thindx[i]])
-    ax[3].plot(ts,data[thindx[i]])
+    ax[3].plot(traj.Time,traj.theta)
     ax[3].set(xlabel="t",ylabel="th")
 
 # %%

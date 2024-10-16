@@ -7,7 +7,7 @@ from scipy.special import ndtri
 @njit 
 def getIC(data,n):
     """
-    Returns the IC of a trajectory stored in data.
+    Returns the IC of a trajectory stored in data. #Can be from a distribution if we want.
     """
     ics = np.ones((n,3))
     ics[:,0] = data[0,0]
@@ -83,11 +83,6 @@ def obs_like(X,Y,Nvar,sigma):
     """
     Observation likelyhood from data
     """
-    #obsl = 1.0
-    #for i in range(Nvar):
-    #    point = X[i]-Y[i]
-    #    ol = np.exp(-point**2/(2*sigma[i]**2))/(sqrt2pi*sigma[i])
-    #    obsl = obsl*ol
     sqrt2pi = np.sqrt(2*np.pi)
     point = X-Y
     obsl = np.prod(np.exp(-0.5*point**2/sigma**2)/(sqrt2pi*sigma))
@@ -186,42 +181,6 @@ def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param):
     return Lstar
 
 
-#@njit(parallel=True)
-#def log_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_param):
-#    ncoord_t,N = np.shape(data) #number of coordenates and time observations
-#    Ncoord = ncoord_t-1 #take out the time.
-#    state = getIC(data[:Ncoord],R) #initialize the R particles. 
-#    ts = data[Ncoord] #get the data points.
-#    weights = np.zeros(R,dtype=np.float64) #initialize the weights
-#    ln_weights = np.zeros(R,dtype=np.float64) #initialize the weights
-#    Lstar = 1
-#    ln_Lstar = np.log(Lstar)
-#    for i in range(N-1): #loop over the observaitons
-#        t = ts[i]
-#        Dt = ts[i+1] - t #step beteewn observations
-#        Nt = int(Dt/h) #steps to perform between the timecourse data and the h steps of the simulation
-#        Y = data[:Ncoord,i+1]  #data points
-#        for k in prange(R): #loop over the particles
-#            state[k],t_ev = model(state[k],t,h,sqh,Nt,known_param,proposal) #evolve from t_i to t_i+1
-#            lnw =  log_obs_li_f(state[k],Y,Ncoord,obs_li_param)
-#            ln_weights[k] = lnw
-#        ln_w_max = np.max(ln_weights)
-#        weights = np.exp(ln_weights-ln_w_max)
-#        wsum = np.sum(weights)
-#        if wsum == 0: 
-#            Lstar = 0
-#            break
-#        ln_Lstar = ln_Lstar + np.log(wsum) + ln_w_max 
-#        w_norm = weights/wsum
-#        cum_w = np.cumsum(w_norm)
-#        state_resampled = np.zeros((R,Ncoord))
-#        for k in prange(R):
-#            state_resampled[k] = state[np.where(cum_w>=np.random.uniform(0,1))[0][0]]
-#        state = state_resampled
-#    ln_Lstar = ln_Lstar + (N-1)*np.log(R)
-#    Lstar = np.exp(ln_Lstar)
-#    return Lstar
-
 @njit(parallel=True)
 def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_param):
     ncoord_t,N = np.shape(data) #number of coordenates and time observations
@@ -288,7 +247,7 @@ def convergence(chains,nparam,R,M):
         V[p] = (M-2)/M*W[p] + 2/M*B[p]
         hatR[p] = np.sqrt(V[p]/W[p])
     ESS = Seff(chains,nparam,R,M,W,V)
-    return zetas,hatR,W,V,ESS,
+    return hatR,ESS
 
 
 def Seff(chains,nparam,R,M,W,varhat):
