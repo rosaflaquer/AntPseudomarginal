@@ -22,7 +22,7 @@ proj_path = os.path.split(dirname)[0]
 #colors = prop_cycle.by_key()['color']
 #%%
 #1) Load observations
-beta, delta, t_fin = 8, 0.3, 10
+beta, delta, t_fin = 0.25,0.05, 150
 name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 data_file= f"Synthetic-{name}.dat"
@@ -48,16 +48,16 @@ ntraj_data = len(id_traj)
 
 seed = 42
 np.random.seed(seed)
-R_trial = 100 #number of particles trial chains
+R_trial = 250 #number of particles trial chains
 M_trial = 5000 #number of MC steps trial chains
-R = 100 #number of particles
-M = 30000 #number of MC steps
+R = 250 #number of particles
+M = 40000 #number of MC steps
 ln_L0 = 0
 C = 4 #number of chains
 n_estim = 2
 
-min_beta, max_beta = 4, 12
-min_delta, max_delta = 0.005, 0.5
+min_beta, max_beta = 0.01,0.6
+min_delta, max_delta = 0.01, 0.1
 prior_pars = np.ones((2,2))
 prior_pars[0][0],prior_pars[0][1] = min_beta, max_beta 
 prior_pars[1][0],prior_pars[1][1] = min_delta, max_delta
@@ -72,11 +72,12 @@ mean_kern = np.zeros(n_estim)
 cov_kern = np.array([[prior_var(prior_pars[0])/100,0],
                      [0,prior_var(prior_pars[1])/100]])
 print(cov_kern)
-obs_li_param = np.array([0.2,0.2,0.045]) #From bbox histograms.
+obs_li_param = np.array([0.2,0.2,0.045])*2 #From bbox histograms.
 
-h = 0.01
+h = 0.1
 sqh = np.sqrt(h)
-v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
+#v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
+v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,13,1.0
 known_param = np.array([v,l,phi,Mu,Sigma,th0])
 
 config_name = "cofig.dat"
@@ -101,20 +102,20 @@ with open(os.path.join(data_dir,config_name),"w") as f:
 def execute(init_params,cov_kern,log_file,chains_file,dfc,R,M,chains,ln_Ls):
     for i in range(C):
         param_0 = init_params[i]
-        print("Chain",i,"init param", param_0)
+        print("\n Chain",i,"init param", param_0,"####################"*10,"\n")
         time_init = mtime.time()
-        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_L0,proposal_kernel_rv,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param)
+        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_Ls[i],proposal_kernel_rv,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param)
         time_fin = mtime.time()
         extime = time_fin - time_init
-        print("Accepted", naccept, "ratio", naccept/M, "execution time", extime, "s", extime/60, "min")
+        print("execution time", extime, "s", extime/60, "min")
         chains.append([parameters_0[:,0],parameters_0[:,1]])
-        ln_Ls.append(ln_L)
+        ln_Ls[i] = ln_L[-1]
         dfc[f"beta_{i}" ] = parameters_0[:,0]
         dfc[f"delta_{i}"] = parameters_0[:,1]
+        dfc[f"ln_L_{i}"] = naccept
+        dfc[f"accep_{i}"] = ln_L
         dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
         log_file.write(f"chain = {i} ################################################## \n")
-        log_file.write(f"naccept = {naccept} \n")
-        log_file.write(f"ln_L = {ln_L} \n")
         log_file.write(f"execution time = {extime} \n")
 
         #plt.plot(parameters_0[:,0])
@@ -132,13 +133,14 @@ def execute(init_params,cov_kern,log_file,chains_file,dfc,R,M,chains,ln_Ls):
 
 
 # %%
-
-for idx in range(len(data[:2])):
+N_trajs = len(data)
+traj_idxs = np.arange(0,N_trajs,1)
+for idx in traj_idxs[:2]:
     t_traj_ini = mtime.time()
     print(f"start with traj {idx}")
     traj = data[idx]
     chains_trial = []
-    ln_Ls_trial = []
+    ln_Ls_trial = np.ones(C)*ln_L0
     dft = pd.DataFrame([])
     log_file = open(os.path.join(data_dir,f"log_trial_chains-traj_{idx}.dat"),"w")
     chains_file = f"Trial_chains-traj_{idx}.dat"
@@ -158,7 +160,7 @@ for idx in range(len(data[:2])):
     print(sigma_opt,par_end)
 
     chains = []
-    ln_Ls = []
+    ln_Ls = ln_Ls_trial
     dfc = pd.DataFrame([])
     log_file = open(os.path.join(data_dir,f"log_chains-traj_{idx}.dat"),"w")
     chains_file = f"Chains-traj_{idx}.dat"

@@ -14,7 +14,7 @@ colors = prop_cycle.by_key()['color']
 
 # %%
 #1) Load observations
-beta, delta, t_fin = 8, 0.1, 10
+beta, delta, t_fin = 0.25,0.05, 150
 name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 data_file= f"Synthetic-{name}.dat"
@@ -32,10 +32,11 @@ for i,id in enumerate(id_traj):
 
 ntraj_data = len(id_traj)
 #%%
-idx = 0
+idx = 1
 df = pd.read_csv(os.path.join(data_dir,f"Chains-traj_{idx}.dat"))
 nparam = 2
-C = int(len(df.columns)/2)
+#C = int(len(df.columns)/2)
+C = int(len(df.columns)/4)
 M = len(df)
 chains = []
 for i in range(C):
@@ -102,33 +103,35 @@ ax_histx = ax.inset_axes([0, 1.05, 1, 0.25], sharex=ax)
 ax_histy = ax.inset_axes([1.05, 0, 0.25, 1], sharey=ax)
 ax_histx.tick_params(axis="x", labelbottom=False)
 ax_histy.tick_params(axis="y", labelleft=False)
-ax.scatter(betas, deltas,s=5)
+#ax.scatter(betas, deltas,s=5)
+ax.hist2d(betas,deltas,bins=25,cmap="binary")
 
-ax.axvline(np.mean(betas),color="black",ls="--")
-ax.axvline(beta,color="black")
+ax.axvline(np.mean(betas),ls="--")
+ax.axvline(beta)
 mb = np.mean(betas)
 sdb = np.std(betas)
-ax.fill_betweenx([deltas.min(),deltas.max()], mb - sdb, mb + sdb, color='black', alpha=0.35) 
+ax.fill_betweenx([deltas.min(),deltas.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
 
-height, _,_ = ax_histx.hist(betas, bins=bins, density=True)
-ax_histx.axvline(np.mean(betas),color="black",ls="--")
-ax_histx.axvline(beta,color="black")
-ax_histx.fill_betweenx([0,height.max()], mb - sdb, mb + sdb, color='black', alpha=0.35) 
+height, _,_ = ax_histx.hist(betas, bins=bins, density=True,color="black")
+ax_histx.axvline(np.mean(betas),ls="--")
+ax_histx.axvline(beta)
+ax_histx.fill_betweenx([0,height.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
 
-ax.axhline(np.mean(deltas),color="black",ls="--")
-ax.axhline(delta,color="black")
+ax.axhline(np.mean(deltas),ls="--")
+ax.axhline(delta)
 md = np.mean(deltas)
 sdd = np.std(deltas)
-ax.fill_between([betas.min(),betas.max()], md - sdd, md + sdd, color='black', alpha=0.35) 
+ax.fill_between([betas.min(),betas.max()], md - sdd, md + sdd, color=colors[0], alpha=0.15) 
 
-height, _,_ = ax_histy.hist(deltas, bins=bins, density=True, orientation='horizontal')
-ax_histy.axhline(np.mean(deltas),color="black",ls="--")
-ax_histy.axhline(delta,color="black")
-ax_histy.fill_between([0,height.max()],  md - sdd, md + sdd, color='black', alpha=0.35) 
+height, _,_ = ax_histy.hist(deltas, bins=bins, density=True, orientation='horizontal',color="black")
+ax_histy.axhline(np.mean(deltas),ls="--")
+ax_histy.axhline(delta)
+ax_histy.fill_between([0,height.max()],  md - sdd, md + sdd, color=colors[0], alpha=0.15) 
 
 filename = f"Distr-traj_{idx}.png"
 fig.savefig(os.path.join(data_dir,filename),format="png",
         facecolor="w",edgecolor="w",bbox_inches="tight")
+
 
 #%%
 
@@ -150,7 +153,8 @@ def count_zero_crossings(data):
 
 
 h = 0.01 
-v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
+#v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
+v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,13,1.0
 param = np.array([v,l,phi,Mu,Sigma,th0 ])
 icon = np.array([data[idx,0,0],data[idx,1,0],data[idx,2,0]])
 t_fin = data[idx,3,-1]
@@ -181,7 +185,7 @@ for i in range(ndraws):
     ax.plot(xm,ym,color="white")
     ax.fill_betweenx(ym,xm-ss,xm+ss,color="black",alpha=0.9)
     ax.plot(data[idx,0,:],data[idx,1,:],color="black")
-    ax.set(xlabel=r"$x$",ylabel=r"$y$",xlim=[-0.2,0.2])
+    ax.set(xlabel=r"$x$",ylabel=r"$y$")
     ax.text(0.75,0.8,
             r"$\beta^*$={:.2f}".format(b_distr) +"\n" + r"$\delta^*$={:.2f}".format(d_distr),
             transform=ax.transAxes)
@@ -225,3 +229,18 @@ plt.show()
 filename = f"Posterior_check-traj_{idx}.png"
 fig.savefig(os.path.join(data_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
+#%%
+
+Ntraj_ic = 15
+ks = np.array([0.6,0.12])
+v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,13/2,1.0
+param = np.array([v,l,phi,Mu,Sigma,th0 ])
+data_pred = lib_model.multiple_traj(icon,h,np.sqrt(h),Nt,iwr,param,ks,Ntraj_ic)
+#%%
+fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+for j in range(0,len(data_pred),3):
+    #if j > 3*7: break
+    ax.plot(data_pred[j],data_pred[(j+1)],alpha=0.5)
+ax.axvline(0,color="black")
+ax.axhline(0,color="black")
+ax.set(xlabel=r"$x$",ylabel=r"$y$",xlim=[-70,70],ylim=[-10,800])

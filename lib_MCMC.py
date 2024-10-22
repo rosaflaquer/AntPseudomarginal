@@ -118,7 +118,13 @@ def MCMC(M,n_estim,param_0,L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern
             naccept += 1            
         else:
             parameters[m] = parameters[m-1]
-        if m%int(M*0.05) == 0: print("m=",m,"rate accepted",naccept/m,"Current pars.",parameters[m],"Current Like",L,"Proposal pars",proposal,"Proposal Like",L_star)
+        if m%int(M*0.05) == 0: 
+            print("m=",m,"rate accepted","{:.3f}".format(naccept/m))
+            print("Current pars.","{:.3f},{:.3f}".format(parameters[m]))
+            print("Current Like","{:.3f}".format(L))
+            print("Proposal pars.","{:.3f},{:.3f}".format(proposal))
+            print("Proposal Like","{:.3f}".format(L_star))
+            print("u","{:.5f}".format(u),"alpha","{:.5f}".format(alpha))
     return parameters, naccept, L
 
 
@@ -128,6 +134,9 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
     parameters[0] = param_0
     ln_val_prior = np.log(prior(param_0,prior_pars))
     naccept = 0
+    accepted = np.zeros(M+1)
+    v_ln_Ls = np.zeros(M+1)
+    v_ln_Ls[0] = ln_L
     for m in range(1,M+1): #montecarlo steps
         valid = False
         while not(valid):
@@ -136,7 +145,7 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
             if val_prior_prop > 0 : valid = True
         ln_val_prior_prop = np.log(val_prior_prop)
         ln_L_star = estimate_ln_L(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param)
-        ln_alpha = np.min(np.array([0, ln_L_star + ln_val_prior_prop - ln_L - ln_val_prior]))
+        ln_alpha = np.min(np.array([0.0, ln_L_star + ln_val_prior_prop - ln_L - ln_val_prior]))
         alpha = np.exp(ln_alpha)
         u = np.random.uniform(0,1)
         if u < alpha: 
@@ -146,8 +155,18 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
             naccept += 1
         else:
             parameters[m] = parameters[m-1]
-        if m%int(M*0.05) == 0: print("m=",m,"rate accepted",naccept/m,"Current pars.",parameters[m],"Current Like",ln_L,"Proposal pars",proposal,"Proposal Like",ln_L_star)
-    return parameters, naccept, ln_L
+        accepted[m] = naccept
+        v_ln_Ls[m] = ln_L
+        if m%int(M*0.05) == 0: 
+            print("m=",m,"rate accepted",naccept/m,"--"*10)
+            print("Current pars.",parameters[m][0],parameters[m][1])
+            print("Current Like",ln_L)
+            print("Proposal pars.",proposal[0],proposal[1])
+            print("Proposal Like",ln_L_star)
+            print("u",u,"alpha",alpha)
+            print("ln_L var", np.var(v_ln_Ls[:m]))
+            print("--"*20)
+    return parameters, accepted, v_ln_Ls
 
 
 @njit(parallel=True)
@@ -199,20 +218,19 @@ def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_par
             state[k],t_ev = model(state[k],t,h,sqh,Nt,known_param,proposal) #evolve from t_i to t_i+1
             lnw =  log_obs_li_f(state[k],Y,Ncoord,obs_li_param)
             ln_weights[k] = lnw
-        ln_w_max = np.max(ln_weights)
-        weights = np.exp(ln_weights-ln_w_max)
-        wsum = np.sum(weights)
-        if wsum == 0: 
+        weights = np.exp(ln_weights)
+        marginal = np.sum(weights)
+        if marginal == 0: 
             ln_Lstar = -np.inf
             break
-        ln_Lstar = ln_Lstar + np.log(wsum) + ln_w_max 
-        w_norm = weights/wsum
+        ln_Lstar = ln_Lstar + np.log(marginal)  
+        w_norm = weights/marginal
         cum_w = np.cumsum(w_norm)
         state_resampled = np.zeros((R,Ncoord))
         for k in prange(R):
             state_resampled[k] = state[np.where(cum_w>=np.random.uniform(0,1))[0][0]]
         state = state_resampled
-    ln_Lstar = ln_Lstar + (N-1)*np.log(R)
+    ln_Lstar = ln_Lstar - (N-1)*np.log(R)
     return ln_Lstar
 
 
