@@ -119,7 +119,7 @@ def MCMC(M,n_estim,param_0,L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern
         else:
             parameters[m] = parameters[m-1]
         if m%int(M*0.05) == 0: 
-            print("m=",m,"rate accepted","{:.3f}".format(naccept/m))
+            print("m=",m,"rate accepted","{:.3f}".format(naccept/m),"total accepted",naccept)
             print("Current pars.","{:.3f},{:.3f}".format(parameters[m]))
             print("Current Like","{:.3f}".format(L))
             print("Proposal pars.","{:.3f},{:.3f}".format(proposal))
@@ -158,7 +158,7 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
         accepted[m] = naccept
         v_ln_Ls[m] = ln_L
         if m%int(M*0.05) == 0: 
-            print("m=",m,"rate accepted",naccept/m,"--"*10)
+            print("m=",m,"rate accepted",naccept/m,"total accepted",naccept,"--"*10)
             print("Current pars.",parameters[m][0],parameters[m][1])
             print("Current Like",ln_L)
             print("Proposal pars.",proposal[0],proposal[1])

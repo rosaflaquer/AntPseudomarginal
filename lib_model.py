@@ -27,7 +27,7 @@ def qs(zz,t,known_param,estimate_param):
     x,y,th = zz[0],zz[1],zz[2]
     q1 = v*np.cos(th0*(th))
     q2 = v*np.sin(th0*(th))
-    q3 = beta/v*(Cl(x,y,th,phtrail,known_param,estimate_param)-Cr(x,y,th,phtrail,known_param,estimate_param))*np.sin(th0*th)
+    q3 = beta/v*(Cl(x,y,th,phtrail,known_param,estimate_param)-Cr(x,y,th,phtrail,known_param,estimate_param))*np.abs(np.sin(th0*th))
     return np.array([q1,q2,q3])
 
 @njit

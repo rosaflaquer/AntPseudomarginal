@@ -56,7 +56,8 @@ df2_f = df2[df2["diff"]<1.5]
 df2_s = df2_f.shift(1)
 dx = df2_s["x"] - df2_f["x"]
 dy = df2_s["y"] - df2_f["y"]
-eth = np.sqrt((dx/(dx**2+dy**2))**2*0.4**2 + (dy/(dx**2+dy**2))**2*0.4**2  )
+e = 24
+eth = np.sqrt((dx/(dx**2+dy**2))**2*e**2 + (dy/(dx**2+dy**2))**2*e**2  )
 
 #%%
 
