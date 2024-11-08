@@ -14,8 +14,7 @@ colors = prop_cycle.by_key()['color']
 
 # %%
 #1) Load observations
-name = "Traj_09_sep_67_4.0"
-name = "Traj_27_sep_313_2.0"
+name = "Traj_04_oct_203_9.0"
 data_dir = os.path.join(proj_path,"Data","Fits",name)
 traj_dir = os.path.join(proj_path,"Data","Ant_data")
 data_file = "2022_Transformed_width_50-frames_40.dat"
@@ -40,8 +39,9 @@ filename = f"traj_{name}.png"
 #            facecolor="w",edgecolor="w",bbox_inches="tight")
 
 #%%
+file_name = "Chains-"
 
-df = pd.read_csv(os.path.join(data_dir,"Chains-"+name+".dat"))
+df = pd.read_csv(os.path.join(data_dir,file_name+name+".dat"))
 nparam = 2
 #C = int(len(df.columns)/2)
 C = int(len(df.columns)/4)
@@ -66,10 +66,10 @@ for i in range(C):
     betas[i*M:(i+1)*M] = chains[i][0]
     deltas[i*M:(i+1)*M]= chains[i][1]
 plt.show()
-filename = f"Chains_beta-{name}.png"
+filename = file_name + f"beta-{name}.png"
 fig.savefig(os.path.join(data_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
-filename = f"Chains_delta-{name}.png"
+filename = file_name + f"delta-{name}.png"
 fig1.savefig(os.path.join(data_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
 #%%

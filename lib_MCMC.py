@@ -1,7 +1,6 @@
 #%%
 import numpy as np
 from numba import njit,prange
-from numba_stats import norm,uniform
 from scipy.special import ndtri
 
 @njit 

@@ -27,9 +27,11 @@ data_file = "2022_Transformed_width_50-frames_40.dat"
 #data_file = "CM_Tranformed_2022_Alldays-width_50-frames_40.dat"
 datadf = pd.read_csv(os.path.join(data_dir,data_file))
 id_traj_list = datadf["id_traj"].unique()
+
+#%%
 idx = 0
 id_traj = id_traj_list[idx]
-id_traj = "27_sep_313_2.0"
+id_traj = "04_oct_478_3.0"
 out_dir = os.path.join(proj_path,"Data","Fits",f"Traj_{id_traj}")
 if not(os.path.exists(out_dir)): os.mkdir(out_dir)
 len_trajs = len(datadf[datadf["id_traj"]==id_traj])
@@ -65,7 +67,7 @@ ln_L0 = 0
 C = 4 #number of chains
 n_estim = 2
 
-min_beta, max_beta = 0,1
+min_beta, max_beta = 0.01,1
 min_delta, max_delta = 0.01, 0.25
 prior_pars = np.ones((2,2))
 prior_pars[0][0],prior_pars[0][1] = min_beta, max_beta 
@@ -78,8 +80,10 @@ init_params = [
 ] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
 mean_kern = np.zeros(n_estim)
-cov_kern = np.array([[prior_var(prior_pars[0])/1000,0],
-                     [0,prior_var(prior_pars[1])/1000]])
+cov_kern = np.array([[prior_var(prior_pars[0])/100,0],
+                     [0,prior_var(prior_pars[1])/100]])
+#cov_kern = np.array([[0.01,0],
+#                     [0,0.001]])
 print(cov_kern)
 
 obs_li_param = np.array([24,24,5*np.pi/180]) #From bbox histograms.
@@ -107,6 +111,10 @@ with open(os.path.join(out_dir,config_name),"w") as f:
     f.write(f"h = {h} \n")
     f.write(f"v,l,phi,Mu,Sigma,th0 = {v},{l},{phi},{Mu},{Sigma},{th0} \n")
     f.write(f"obs_li_param = {obs_li_param} \n")
+    f.write(f"cov_kern[0][0] = {cov_kern[0][0]} \n")
+    f.write(f"cov_kern[0][1] = {cov_kern[0][1]} \n")
+    f.write(f"cov_kern[1][0] = {cov_kern[1][0]} \n")
+    f.write(f"cov_kern[1][1] = {cov_kern[1][1]} \n")
 
 #%%
 
