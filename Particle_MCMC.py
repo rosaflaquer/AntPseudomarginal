@@ -3,27 +3,62 @@ import numpy as np
 import os
 #import matplotlib.pyplot as plt
 import pandas as pd
-from numba import get_num_threads
+from numba import get_num_threads, set_num_threads
 from lib_MCMC import *
 from lib_model import model_step
 import time as mtime
 
-
-n_threads = get_num_threads()
-print("Number of threads possible threads for this execution", n_threads)
-space = 2 
-numthreads = n_threads-space
-print("Using", numthreads, "leaving ", space, "free")
-
-dirname = os.path.dirname(os.path.abspath(__file__)) #script direcotry
+dirname = os.getcwd()
 proj_path = os.path.split(dirname)[0] 
 #plt.style.use(os.path.join( os.path.split(proj_path)[0],'Estils','plots.mplstyle')) #styles file
 #prop_cycle = plt.rcParams['axes.prop_cycle']
 #colors = prop_cycle.by_key()['color']
+
+with open(os.path.join(dirname,"config.par"),"r") as f:
+    name = f.readline().split()[-1]
+    idx = int(f.readline().split()[-1])
+    numthreads = int(f.readline().split()[-1])
+    seed = int(f.readline().split()[-1])
+    R_trial = int(f.readline().split()[-1])
+    M_trial = int(f.readline().split()[-1])
+    R = int(f.readline().split()[-1])
+    M = int(f.readline().split()[-1])
+    ln_L0 = int(f.readline().split()[-1])
+    C = int(f.readline().split()[-1])
+    n_estim = int(f.readline().split()[-1])
+    h = float(f.readline().split()[-1])
+    first_beta = float(f.readline().split()[-1])
+    second_beta = float(f.readline().split()[-1])
+    distr_beta = int(f.readline().split()[-1])
+    first_delta = float(f.readline().split()[-1])
+    second_delta = float(f.readline().split()[-1])
+    distr_delta = int(f.readline().split()[-1])
+    v = float(f.readline().split()[-1])
+    first_l = float(f.readline().split()[-1])
+    second_l = float(f.readline().split()[-1])
+    distr_l = int(f.readline().split()[-1])
+    first_phi = float(f.readline().split()[-1])
+    second_phi = float(f.readline().split()[-1])
+    distr_phi = int(f.readline().split()[-1])
+    Mu = float(f.readline().split()[-1])
+    first_sigma = float(f.readline().split()[-1])
+    second_sigma = float(f.readline().split()[-1])
+    distr_sigma = int(f.readline().split()[-1])
+    th0 = float(f.readline().split()[-1])
+    obs_li_param_x = float(f.readline().split()[-1])
+    obs_li_param_y = float(f.readline().split()[-1])
+    obs_li_param_th = float(f.readline().split()[-1])
+    frac_var_obs = float(f.readline().split()[-1])
+
+#%%
+
+set_num_threads(numthreads)
+print("Using", numthreads, "leaving ", get_num_threads() - numthreads, "free")
+
+
 #%%
 #1) Load observations
-beta, delta, t_fin = 0.25,0.05, 150
-name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
+
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 data_file= f"Synthetic-{name}.dat"
 datadf = pd.read_csv(os.path.join(data_dir,data_file))
@@ -31,7 +66,7 @@ id_traj = datadf["id_traj"].unique()
 Ntrajs = len(id_traj)
 len_trajs = len(datadf[datadf["id_traj"]==id_traj[0]])
 data = np.zeros((Ntrajs,4,len_trajs))
-sdat = 0.005
+sdat = 0.05
 for i,id in enumerate(id_traj):
     day_traj = datadf[datadf["id_traj"]==id]
     data[i][0] = day_traj["x"].values     + np.random.normal(0,sdat,size=len(day_traj["x"]))
@@ -46,39 +81,37 @@ ntraj_data = len(id_traj)
 #plt.close()
 #%%
 
-seed = 42
 np.random.seed(seed)
-R_trial = 250 #number of particles trial chains
-M_trial = 5000 #number of MC steps trial chains
-R = 250 #number of particles
-M = 40000 #number of MC steps
-ln_L0 = 0
-C = 4 #number of chains
-n_estim = 2
+sqh = np.sqrt(h)
+known_param = np.array([v,Mu,th0])
+prior_pars = np.ones((n_estim,3))
 
-min_beta, max_beta = 0.01,0.6
-min_delta, max_delta = 0.01, 0.1
-prior_pars = np.ones((2,2))
-prior_pars[0][0],prior_pars[0][1] = min_beta, max_beta 
-prior_pars[1][0],prior_pars[1][1] = min_delta, max_delta
+prior_pars[0][0],prior_pars[0][1],prior_pars[0][2] = first_beta, second_beta, distr_beta
+prior_pars[1][0],prior_pars[1][1],prior_pars[1][2] = first_delta, second_delta, distr_delta
+prior_pars[2][0],prior_pars[2][1],prior_pars[2][2] = first_sigma, second_sigma, distr_sigma
+prior_pars[3][0],prior_pars[3][1],prior_pars[3][2] = first_l,second_l, distr_l
+prior_pars[4][0],prior_pars[4][1],prior_pars[4][2] = first_phi,second_phi, distr_phi
+if distr_sigma == 0: Sigma = second_sigma - first_sigma
+elif distr_sigma == 1: Sigma = first_sigma
+if distr_l == 0: l = second_l - first_l
+elif distr_l == 1: l = first_l
+if distr_phi == 0: phi = second_phi - first_phi
+elif distr_phi == 1: phi = first_phi
+
 init_params = [
-    np.array([min_beta,min_delta]),
-    np.array([min_beta,max_delta]),
-    np.array([max_beta,min_delta]),
-    np.array([max_beta,max_delta]),
+    np.array([first_beta,first_delta,Sigma,l,phi]),
+    np.array([first_beta,second_delta,Sigma,l,phi]),
+    np.array([second_beta,first_delta,Sigma,l,phi]),
+    np.array([second_beta,second_delta,Sigma,l,phi]),
 ] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
-mean_kern = np.zeros(n_estim)
-cov_kern = np.array([[prior_var(prior_pars[0])/100,0],
-                     [0,prior_var(prior_pars[1])/100]])
-print(cov_kern)
-obs_li_param = np.array([0.2,0.2,0.045])*2 #From bbox histograms.
 
-h = 0.1
-sqh = np.sqrt(h)
-#v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
-v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,13,1.0
-known_param = np.array([v,l,phi,Mu,Sigma,th0])
+mean_kern = np.zeros(n_estim)
+cov_kern = np.zeros((n_estim,n_estim))
+for i in range(n_estim):
+    cov_kern[i][i] = prior_var(prior_pars[i])/frac_var_obs
+print(cov_kern)
+obs_li_param = np.array([obs_li_param_x,obs_li_param_y,obs_li_param_th*np.pi/180])
 
 config_name = "cofig.dat"
 with open(os.path.join(data_dir,config_name),"w") as f:
@@ -91,16 +124,22 @@ with open(os.path.join(data_dir,config_name),"w") as f:
     f.write(f"ln_L0 = {ln_L0} \n")
     f.write(f"C = {C} \n")
     f.write(f"n_estim = {n_estim} \n")
-    f.write(f"min_beta, max_beta = {min_beta}, {max_beta}\n")
-    f.write(f"min_delta, max_delta = {min_delta}, {max_delta}\n")
+    for i in range(C):
+        f.write(f"param {i} = {init_params[i]} \n")
     f.write(f"h = {h} \n")
     f.write(f"v,l,phi,Mu,Sigma,th0 = {v},{l},{phi},{Mu},{Sigma},{th0} \n")
     f.write(f"obs_li_param = {obs_li_param} \n")
+    f.write(f"cov_kern = {cov_kern} \n")
 
 #%%
 
-def execute(init_params,cov_kern,log_file,chains_file,dfc,R,M,chains,ln_Ls):
+
+def execute(init_params,cov_kern,ln_Ls,R,M,C,log_file_name,chains_file,data_dir):
     for i in range(C):
+        chains = np.zeros((C,n_estim,M+1))
+        dfc = pd.DataFrame([])
+        log_file = open(os.path.join(data_dir,log_file_name),"w")
+
         param_0 = init_params[i]
         print("\n Chain",i,"init param", param_0,"####################"*10,"\n")
         time_init = mtime.time()
@@ -108,76 +147,57 @@ def execute(init_params,cov_kern,log_file,chains_file,dfc,R,M,chains,ln_Ls):
         time_fin = mtime.time()
         extime = time_fin - time_init
         print("execution time", extime, "s", extime/60, "min")
-        chains.append([parameters_0[:,0],parameters_0[:,1]])
+        for j in range(n_estim):
+            chains[i][j]= parameters_0[:,j]
+            dfc[f"par{j}_{i}"] = parameters_0[:,j]
         ln_Ls[i] = ln_L[-1]
-        dfc[f"beta_{i}" ] = parameters_0[:,0]
-        dfc[f"delta_{i}"] = parameters_0[:,1]
         dfc[f"ln_L_{i}"] = naccept
         dfc[f"accep_{i}"] = ln_L
         dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
         log_file.write(f"chain = {i} ################################################## \n")
         log_file.write(f"execution time = {extime} \n")
-
-        #plt.plot(parameters_0[:,0])
-        #plt.ylabel(r"$\beta$")
-        #plt.axhline(beta,color="black")
-        #plt.title(i)
-        #plt.show(block=False)
-        #plt.close()
-        #plt.plot(parameters_0[:,1])
-        #plt.ylabel(r"$\delta$")
-        #plt.axhline(delta,color="black")
-        #plt.title(i)
-        #plt.show(block=False)
-        #plt.close()
-
-
-# %%
-N_trajs = len(data)
-traj_idxs = np.arange(0,N_trajs,1)
-for idx in traj_idxs[:2]:
-    t_traj_ini = mtime.time()
-    print(f"start with traj {idx}")
-    traj = data[idx]
-    chains_trial = []
-    ln_Ls_trial = np.ones(C)*ln_L0
-    dft = pd.DataFrame([])
-    log_file = open(os.path.join(data_dir,f"log_trial_chains-traj_{idx}.dat"),"w")
-    chains_file = f"Trial_chains-traj_{idx}.dat"
-    execute(init_params,cov_kern,log_file,chains_file,dft,R_trial,M_trial,chains_trial,ln_Ls_trial)
-    dft.to_csv(os.path.join(data_dir,chains_file),index=False)
-    log_file.close()
-    print("\n Done computing trial chains \n")
-
-    par_complte = np.zeros(((M_trial+1)*C,n_estim))
-    par_end = []
-    for i in range(C):
-        par_complte[i*(M_trial+1):(M_trial+1)*(i+1),0]  = chains_trial[i][0]
-        par_complte[i*(M_trial+1):(M_trial+1)*(i+1),1]  = chains_trial[i][1]
-        par_end.append([chains_trial[i][0][-1],chains_trial[i][1][-1],])
-
-    sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
-    print(sigma_opt,par_end)
-
-    chains = []
-    ln_Ls = ln_Ls_trial
-    dfc = pd.DataFrame([])
-    log_file = open(os.path.join(data_dir,f"log_chains-traj_{idx}.dat"),"w")
-    chains_file = f"Chains-traj_{idx}.dat"
-    execute(par_end,sigma_opt,log_file,chains_file,dfc,R,M,chains,ln_Ls)
-    dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
-    log_file.close()
-    hatR,ESS = convergence(chains,n_estim,C,M+1)
-    log_file = open(os.path.join(data_dir,f"log_chains-traj_{idx}.dat"),"a")
-    log_file.write("Convergence ########### \n")
-    log_file.write(f"hatR = {hatR} \n")
-    log_file.write(f"ESS = {ESS} \n")
-    log_file.close()
-    print(f"hatR = {hatR}, ESS = {ESS}")
-    print("\n Done computing chains \n")
+        hatR,ESS = convergence(chains,n_estim,C,M+1)
+        log_file.write("Convergence ########### \n")
+        log_file.write(f"hatR = {hatR} \n")
+        log_file.write(f"ESS = {ESS} \n")
+        log_file.close()
+        print(f"hatR = {hatR}, ESS = {ESS}")
+        return chains,ln_Ls
     
-    t_traj_fin = mtime.time()
-    extime = t_traj_fin-t_traj_ini
-    print(f"Done with traj {idx} execution time {extime//60}:{extime%60} min \n \n \n")
-print("Done")
+
+#%%
+
+t_traj_ini = mtime.time()
+print(f"start with traj {idx}")
+traj = data[idx]
+ln_Ls = np.ones(C)*ln_L0
+
+log_file_name = f"log_trial_chains-traj_{idx}.dat"
+chains_file = f"Trial_chains-traj_{idx}.dat"
+chains_trial,ln_Ls_trial = execute(init_params,cov_kern,ln_Ls,R_trial,M_trial,C,log_file_name,chains_file,data_dir)
+print("\n Done computing trial chains \n")
+
+#compute optimal sigma
+par_complte = np.zeros(((M_trial+1)*C,n_estim))
+par_end = []
+for i in range(C):
+    last_par = []
+    for j in range(n_estim):
+        par_complte[i*(M_trial+1):(M_trial+1)*(i+1),j]  = chains_trial[i][j]
+        last_par.append(chains_trial[i][j][-1])
+    par_end.append(last_par)
+sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
+print(sigma_opt,par_end)
+
+
+ln_Ls = ln_Ls_trial
+log_file_name = f"log_chains-traj_{idx}.dat"
+chains_file = f"Chains-traj_{idx}.dat"
+chains_trial,ln_Ls_trial = execute(par_end,sigma_opt,ln_Ls,R,M,C,log_file_name,chains_file,data_dir)
+print("\n Done computing chains \n")
+
+t_traj_fin = mtime.time()
+extime = t_traj_fin-t_traj_ini
+print(f"Done with traj {idx} execution time {extime//60}:{extime%60} min \n \n \n")
+
 #%%

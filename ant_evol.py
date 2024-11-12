@@ -28,9 +28,9 @@ if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 t_fin = 150 
 dwr = 1 
 #v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
-v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,13,1.0
+v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,6.5,1.0
 param = np.array([v,l,phi,Mu,Sigma,th0]) #"known" model parameters
-beta, delta = np.array([0.25,0.05])
+beta, delta = np.array([0.4,0.05])
 ks = np.array([beta, delta]) #This is what we want to inffer!
 
 
@@ -81,7 +81,8 @@ ax[1].set(ylim=[-60,60])
 
 name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
-fig.savefig(os.path.join(data_dir,"Synthetic-{name}.png"),format="png",
+if not(os.path.exists(data_dir)) : os.mkdir(data_dir)
+fig.savefig(os.path.join(data_dir,f"Synthetic-{name}.png"),format="png",
     facecolor="w",edgecolor="w",bbox_inches="tight")
 #%%
 

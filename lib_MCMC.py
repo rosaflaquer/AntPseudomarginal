@@ -37,11 +37,10 @@ def histo_from_data(data,nbins=50):
 
 @njit
 def prior_rvs(prior_pars):
-    par_beta = prior_pars[0]
-    par_gamma = prior_pars[1]
-    values = np.zeros(2)
-    values[0] = np.random.uniform( par_beta[0], par_beta[1])
-    values[1] = np.random.uniform(par_gamma[0],par_gamma[1])
+    n_estim = len(prior_pars)
+    values = np.zeros(n_estim)
+    for i in range(n_estim):
+        values[i] = np.random.uniform(prior_pars[i][0],prior_pars[i][1])
     return values
 
 @njit
@@ -49,19 +48,25 @@ def prior_var(prior_pars):
     """
     Variance of the uniform distribution.
     """
-    return (1/12)*(prior_pars[1]-prior_pars[0])**2
+    if prior_pars[2] == 0:
+        return (1/12)*(prior_pars[1]-prior_pars[0])**2
+    if prior_pars[2] == 1:
+        return prior_pars[1]**2
 
 @njit
 def prior_dist(vals,prior_pars):
-    par_beta = prior_pars[0]
-    par_delta = prior_pars[1]
-    beta_val,delta_val = vals[0], vals[1]
-    if beta_val > par_beta[0] and beta_val < par_beta[1] and delta_val > par_delta[0] and delta_val < par_delta[1]:
-        pb = 1/(par_beta[1]-par_beta[0])
-        pd = 1/(par_delta[1]-par_delta[0])
-        value = pb*pd
-    else:
-        value = 0
+    n_estim = len(prior_pars)
+    value = 1 
+    for i in range(n_estim):
+        if prior_pars[i][2] == 0: #uniform distribution
+            in_range = (vals[i] > prior_pars[i][0] and vals[i] < prior_pars[i][1])
+            if in_range:
+                value = value*(1/(prior_pars[i][1]-prior_pars[i][0]))
+            else:
+                value = 0
+                return value
+        elif prior_pars[i][2] == 1: #gaussian distribution
+            value = value*(1/np.sqrt(2*np.pi*prior_pars[i][1]**2))*np.exp(-0.5*(prior_pars[i][0]-vals[i])**2/prior_pars[i][1]**2)
     return value
 
 
@@ -144,7 +149,8 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
             if val_prior_prop > 0 : valid = True
         ln_val_prior_prop = np.log(val_prior_prop)
         ln_L_star = estimate_ln_L(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param)
-        ln_alpha = np.min(np.array([0.0, ln_L_star + ln_val_prior_prop - ln_L - ln_val_prior]))
+        aa = ln_L_star + ln_val_prior_prop - ln_L - ln_val_prior
+        ln_alpha = np.min(np.array([0.0, aa]))
         alpha = np.exp(ln_alpha)
         u = np.random.uniform(0,1)
         if u < alpha: 
@@ -158,11 +164,11 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
         v_ln_Ls[m] = ln_L
         if m%int(M*0.05) == 0: 
             print("m=",m,"rate accepted",naccept/m,"total accepted",naccept,"--"*10)
-            print("Current pars.",parameters[m][0],parameters[m][1])
-            print("Current Like",ln_L)
-            print("Proposal pars.",proposal[0],proposal[1])
-            print("Proposal Like",ln_L_star)
-            print("u",u,"alpha",alpha)
+            print("Current Like",ln_L,ln_val_prior)
+            print("Current par.",parameters[m])
+            print("Proposal Like",ln_L_star,ln_val_prior_prop)
+            print("Proposal pars.",proposal)
+            print("u",u,"alpha",alpha,"aa",aa)
             print("ln_L var", np.var(v_ln_Ls[:m]))
             print("--"*20)
     return parameters, accepted, v_ln_Ls
@@ -296,5 +302,4 @@ def autocorrelation(data,max_lag):
     result = np.correlate(data - np.mean(data), data - np.mean(data), mode='full')[-n:]
     result /= result[0]  # Normalize
     return result[:max_lag+1]
-
 

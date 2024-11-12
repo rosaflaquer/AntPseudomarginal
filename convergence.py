@@ -14,7 +14,7 @@ colors = prop_cycle.by_key()['color']
 
 # %%
 #1) Load observations
-beta, delta, t_fin = 0.25,0.05, 150
+beta, delta, t_fin = 0.4,0.05,150
 name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 data_file= f"Synthetic-{name}.dat"
@@ -32,16 +32,19 @@ for i,id in enumerate(id_traj):
 
 ntraj_data = len(id_traj)
 #%%
-idx = 1
+idx = 0
 df = pd.read_csv(os.path.join(data_dir,f"Chains-traj_{idx}.dat"))
-nparam = 2
-#C = int(len(df.columns)/2)
-C = int(len(df.columns)/4)
+nparam = 5
+C = int(len(df.columns)/(nparam+2))
 M = len(df)
 chains = []
 for i in range(C):
-    chains.append([df[f"beta_{i}"].values,df[f"delta_{i}"].values])
-print(len(chains[0]))
+    #chains.append([df[f"beta_{i}"].values,df[f"delta_{i}"].values])
+    onechain = []
+    for j in range(nparam):
+        onechain.append(df[f"par{j}_{i}"].values)
+    chains.append(onechain)
+
 hatR,Se = convergence(chains,nparam,C,M)
 print(hatR,Se)
 #%%
@@ -73,6 +76,33 @@ filename = f"Chains_delta-traj_{idx}.png"
 fig1.savefig(os.path.join(data_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
 #%%
+fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+fig1,ax1=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+fig2,ax2=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+ax.set(ylabel=r"$\sigma$",xlabel="MC step")
+ax1.set(ylabel=r"$l$",xlabel="MC step")
+ax2.set(ylabel=r"$\phi$",xlabel="MC step")
+sigmas = np.zeros(M*C)
+ls = np.zeros(M*C)
+phis = np.zeros(M*C)
+for i in range(C):
+    ax.plot(chains[i][2])
+    ax1.plot(chains[i][3])
+    ax2.plot(chains[i][4])
+    sigmas[i*M:(i+1)*M] = chains[i][2]
+    ls[i*M:(i+1)*M]= chains[i][3]
+    phis[i*M:(i+1)*M]= chains[i][4]
+plt.show()
+filename = f"Chains_sigma-traj_{idx}.png"
+fig.savefig(os.path.join(data_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+filename = f"Chains_l-traj_{idx}.png"
+fig1.savefig(os.path.join(data_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+filename = f"Chains_phi-traj_{idx}.png"
+fig2.savefig(os.path.join(data_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+#%%
 
 def plot(xx,xlabel,nbins,filename):
     fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
@@ -81,20 +111,35 @@ def plot(xx,xlabel,nbins,filename):
     sd = np.std(xx)
     ci = [m-sd,m+sd]
     ylims = [0, height.max()*(1+0.1)]
-    ax.vlines(m,ylims[0],ylims[1],color="black")
+    ax.vlines(m,ylims[0],ylims[1],color="black",label=r"$\langle${}$\rangle$ = {:.3f} $\pm$ {:.3f}".format(xlabel,m,sd))
     ax.fill_betweenx(ylims, ci[0], ci[1], color='black', alpha=0.35) 
     ax.set(xlabel=xlabel,ylim=ylims)
-    plt.show()
+    ax.legend()
+    #plt.show()
     fig.savefig(os.path.join(data_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
+    return fig, ax
 
 nbins = 30
 plot(betas,r"$\beta$",nbins,f"Distr_beta-traj_{idx}.png")
 plot(deltas,r"$\delta$",nbins,f"Distr_delta-traj_{idx}.png")
-
+plot(sigmas,r"$\sigma$",nbins,f"Distr_sigma-traj_{idx}.png")
+fig, ax = plot(ls,r"$l$",nbins,f"Distr_l-traj_{idx}.png")
+xxs = np.linspace(ls.min(),ls.max(),1000)
+ax.plot(xxs,1/np.sqrt(2*np.pi*0.88**2)*np.exp(-0.5*(xxs-13)**2/0.88**2),color="black")
+plot(phis,r"$\phi$",nbins,f"Distr_phi-traj_{idx}.png")
 #%%
-
-
+fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+xxs = np.linspace(-50,50,1000)
+ss = 13*2
+print(ss)
+ax.plot(xxs,1/np.sqrt(2*np.pi*ss**2)*np.exp(-0.5*(xxs-0)**2/ss**2),color="black")
+ax.axvline(6.5)
+ax.axvline(-6.5)
+ax.axvline(13,ls="--")
+ax.axvline(-13,ls="--")
+plt.show()
+#%%
 bins = 50
 fig = plt.figure(figsize=(15,12))
 ax = fig.add_gridspec(top=0.75, right=0.75).subplots()

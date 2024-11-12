@@ -4,26 +4,26 @@ from numba import njit, prange
 
 @njit
 def phtrail(x,y,known_param,estimate_param):
-    v,l,phi,Mu,Sigma,th0 = known_param
-    beta, delta = estimate_param
+    v,Mu,th0 = known_param
+    beta, delta, Sigma, l, phi = estimate_param
     return np.exp(-((x-Mu)/Sigma)**2)
 
 @njit
 def Cl(x,y,theta,trail,known_param,estimate_param):
-    v,l,phi,Mu,Sigma,th0 = known_param
-    beta, delta = estimate_param
+    v,Mu,th0 = known_param
+    beta, delta, Sigma, l, phi = estimate_param
     return trail(x + l*np.cos(th0*(theta + phi)),y + l*np.sin(th0*(theta + phi)),known_param,estimate_param)
 
 @njit
 def Cr(x,y,theta,trail,known_param,estimate_param):
-    v,l,phi,Mu,Sigma,th0 = known_param
-    beta, delta = estimate_param
+    v,Mu,th0 = known_param
+    beta, delta, Sigma, l, phi = estimate_param
     return trail(x + l*np.cos(th0*(theta - phi)),y + l*np.sin(th0*(theta - phi)),known_param,estimate_param)
 
 @njit
 def qs(zz,t,known_param,estimate_param):
-    v,l,phi,Mu,Sigma,th0 = known_param
-    beta, delta = estimate_param
+    v,Mu,th0 = known_param
+    beta, delta, Sigma, l, phi = estimate_param
     x,y,th = zz[0],zz[1],zz[2]
     q1 = v*np.cos(th0*(th))
     q2 = v*np.sin(th0*(th))
@@ -32,8 +32,8 @@ def qs(zz,t,known_param,estimate_param):
 
 @njit
 def gs(zz,t,known_param,estimate_param):
-    v,l,phi,Mu,Sigma,th0 = known_param
-    beta, delta = estimate_param
+    v,Mu,th0 = known_param
+    beta, delta, Sigma, l, phi = estimate_param
     g1 = 0
     g2 = 0
     g3 = delta
