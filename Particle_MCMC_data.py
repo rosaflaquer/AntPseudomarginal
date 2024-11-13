@@ -91,7 +91,7 @@ init_params = [
 mean_kern = np.zeros(n_estim)
 cov_kern = np.zeros((n_estim,n_estim))
 for i in range(n_estim):
-    cov_kern[i][i] = prior_var(prior_pars[i])/100
+    cov_kern[i][i] = prior_var(prior_pars[i])/200
 print(cov_kern)
 obs_li_param = np.array([24,24,5*np.pi/180]) #From bbox histograms.
 
