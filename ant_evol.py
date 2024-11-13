@@ -32,8 +32,8 @@ dwr = 1
 #v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
 v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,6.5,1.0
 param = np.array([v,Mu,th0]) #"known" model parameters
-beta, delta = np.array([0.4,0.05,Sigma,l,phi])
-ks = np.array([beta, delta]) #This is what we want to inffer!
+beta, delta = np.array([0.4,0.05])
+ks = np.array([beta, delta, Sigma,l,phi]) #This is what we want to inffer!
 
 
 #Simulation setup.
