@@ -1,0 +1,30 @@
+figure.titlesize: 45
+axes.titlesize : 35
+axes.labelsize : 30
+axes.labelpad: 10
+xtick.major.size: 10.2
+ytick.major.size: 10.2
+xtick.major.pad: 8
+ytick.major.pad: 8
+
+font.size : 25
+xtick.labelsize : 30
+ytick.labelsize : 30
+
+font.family : lmodern #'cmunrm'
+text.usetex  : True
+
+xtick.top : False  
+xtick.direction : inout
+ytick.direction : inout
+
+lines.linewidth : 2.5
+lines.markersize : 15
+scatter.marker : o
+
+#colors
+axes.prop_cycle : cycler('color', ['FF6B6B','FFE00A','5ab33d','7DA6F8','7C00B2','004500','FBB13C','8F2D56','5557EB','D81159','19626B'])
+
+image.cmap : inferno #rainbow, cubehelix, plasma, magma
+
+#diverging '8f2d56','a7495e','bc6568','cf8275','e09f87','f0bd9d','ffdbb7','dcbf91','b6a46d','8e8b4c','65742f','3b5c16','004500'

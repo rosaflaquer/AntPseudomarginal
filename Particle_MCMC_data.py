@@ -18,7 +18,7 @@ print("Using", numthreads, "leaving ", space, "free")
 
 dirname = os.getcwd()
 proj_path = os.path.split(dirname)[0] 
-plt.style.use(os.path.join( os.path.split(proj_path)[0],'Estils','plots.mplstyle')) #styles file
+plt.style.use(os.path.join(dirname,'Estils','plots.mplstyle')) #styles file
 prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 #%%

@@ -3,22 +3,24 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from numba import get_num_threads, jit, njit
+from numba import get_num_threads, set_num_threads
 import lib_model
 import seaborn as sns
 import pandas as pd
 
 n_threads = get_num_threads()
 print("Number of threads possible threads for this execution", n_threads)
-space = 6 
+space = 0
 numthreads = n_threads-space
+set_num_threads(numthreads)
 print("Using", numthreads, "leaving ", space, "free")
 
-dirname = os.path.dirname(os.path.abspath(__file__)) #script direcotry
+dirname = os.getcwd()
 proj_path = os.path.split(dirname)[0] 
-plt.style.use(os.path.join( os.path.split(proj_path)[0],'Estils','plots.mplstyle')) #styles file
+plt.style.use(os.path.join(dirname,'Estils','plots.mplstyle')) #styles file
 prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
+
 
 data_dir = os.path.join(proj_path,"Data","Synthetic")
 if not(os.path.exists(data_dir)): os.mkdir(data_dir)

@@ -6,15 +6,15 @@ import pandas as pd
 from lib_MCMC import *
 import lib_model
 
-dirname = os.path.dirname(os.path.abspath(__file__)) #script direcotry
+dirname = os.getcwd()
 proj_path = os.path.split(dirname)[0] 
-plt.style.use(os.path.join( os.path.split(proj_path)[0],'Estils','plots.mplstyle')) #styles file
+plt.style.use(os.path.join(dirname,'Estils','plots.mplstyle')) #styles file
 prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 
 # %%
 #1) Load observations
-name = "Traj_04_oct_203_9.0"
+name = "Traj_09_sep_211_1.0"
 data_dir = os.path.join(proj_path,"Data","Fits",name)
 traj_dir = os.path.join(proj_path,"Data","Ant_data")
 data_file = "2022_Transformed_width_50-frames_40.dat"
@@ -42,36 +42,41 @@ filename = f"traj_{name}.png"
 file_name = "Chains-"
 
 df = pd.read_csv(os.path.join(data_dir,file_name+name+".dat"))
-nparam = 2
+nparam = 5
 #C = int(len(df.columns)/2)
-C = int(len(df.columns)/4)
+C = int(len(df.columns)/(nparam+2))
 M = len(df)
 chains = []
 for i in range(C):
-    chains.append([df[f"beta_{i}"].values,df[f"delta_{i}"].values])
+    par_ch = []
+    for j in range(nparam):
+        par_ch.append(df[f"par{j}_{i}"].values)
+    chains.append(par_ch)
+    #chains.append([df[f"beta_{i}"].values,df[f"delta_{i}"].values])
 print(len(chains[0]))
 hatR,Se = convergence(chains,nparam,C,M)
 print(hatR,Se)
 
 #%%
-fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-fig1,ax1=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-ax.set(ylabel=r"$\beta$",xlabel="MC step")
-ax1.set(ylabel=r"$\delta$",xlabel="MC step")
-betas = np.zeros(M*C)
-deltas = np.zeros(M*C)
-for i in range(C):
-    ax.plot(chains[i][0])
-    ax1.plot(chains[i][1])
-    betas[i*M:(i+1)*M] = chains[i][0]
-    deltas[i*M:(i+1)*M]= chains[i][1]
-plt.show()
-filename = file_name + f"beta-{name}.png"
-fig.savefig(os.path.join(data_dir,filename),format="png",
-            facecolor="w",edgecolor="w",bbox_inches="tight")
-filename = file_name + f"delta-{name}.png"
-fig1.savefig(os.path.join(data_dir,filename),format="png",
-            facecolor="w",edgecolor="w",bbox_inches="tight")
+dict_params = {
+    0 : [r"$\beta$",f"beta-{name}.png",np.zeros(M*C)],
+    1 : [r"$\delta$",f"delta-{name}.png",np.zeros(M*C)],
+    2 : [r"$\sigma$",f"sigma-{name}.png",np.zeros(M*C)],
+    3 : [r"$l$",f"l-{name}.png",np.zeros(M*C)],
+    4 : [r"$\phi$",f"phi-{name}.png",np.zeros(M*C)],
+}
+
+for j in range(nparam):
+    fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+    ax.set(ylabel=dict_params[j][0],xlabel="MC step")
+    for i in range(C):
+        ax.plot(chains[i][j])
+        dict_params[j][2] = chains[i][j]
+    plt.show()
+    fig.savefig(os.path.join(data_dir,dict_params[j][1]),format="png",
+                facecolor="w",edgecolor="w",bbox_inches="tight")
+
+
 #%%
 
 def plot(xx,xlabel,nbins,filename):
@@ -89,11 +94,12 @@ def plot(xx,xlabel,nbins,filename):
             facecolor="w",edgecolor="w",bbox_inches="tight")
 
 nbins = 30
-plot(betas,r"$\beta$",nbins,f"Distr_beta-traj_{name}.png")
-plot(deltas,r"$\delta$",nbins,f"Distr_delta-traj_{name}.png")
+for j in range(nparam):
+    plot(dict_params[j][2],dict_params[j][0],nbins,"Distr_" + dict_params[j][1])
 
 #%%
-
+betas = dict_params[0][2]
+deltas = dict_params[1][2]
 
 bins = 50
 fig = plt.figure(figsize=(15,12))

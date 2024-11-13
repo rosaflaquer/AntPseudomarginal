@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-from numba import get_num_threads,prange,jit
+from numba import get_num_threads,set_num_threads
 import lib_model as lib
 import time
 
@@ -12,15 +12,15 @@ n_threads = get_num_threads()
 print("Number of threads possible threads for this execution", n_threads)
 space = 4 #n_threads - 4
 numthreads = n_threads-space
+set_num_threads(numthreads)
 print("Using", numthreads, "leaving ", space, "free")
 #%%
 save = False
 
 
-#directory definition
-dirname = os.path.dirname(os.path.abspath(__file__)) #script direcotry
-path = os.path.split(dirname)[0] #crop before scripts
-plt.style.use(os.path.join(os.path.split(path)[0],'Estils','plots.mplstyle')) #styles file
+dirname = os.getcwd()
+proj_path = os.path.split(dirname)[0] 
+plt.style.use(os.path.join(dirname,'Estils','plots.mplstyle')) #styles file
 prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 del(dirname)

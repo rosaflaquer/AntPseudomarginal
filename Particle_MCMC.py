@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 import os
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import pandas as pd
 from numba import get_num_threads, set_num_threads
 from lib_MCMC import *
@@ -10,9 +10,9 @@ import time as mtime
 
 dirname = os.getcwd()
 proj_path = os.path.split(dirname)[0] 
-#plt.style.use(os.path.join( os.path.split(proj_path)[0],'Estils','plots.mplstyle')) #styles file
-#prop_cycle = plt.rcParams['axes.prop_cycle']
-#colors = prop_cycle.by_key()['color']
+plt.style.use(os.path.join(dirname,'Estils','plots.mplstyle')) #styles file
+prop_cycle = plt.rcParams['axes.prop_cycle']
+colors = prop_cycle.by_key()['color']
 
 with open(os.path.join(dirname,"config.par"),"r") as f:
     name = f.readline().split()[-1]
