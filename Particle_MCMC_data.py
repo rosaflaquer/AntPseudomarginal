@@ -78,9 +78,9 @@ if distr_phi == 0: phi = second_phi - first_phi
 elif distr_phi == 1: phi = first_phi
 
 init_params = [
-    np.array([first_beta,first_delta,Sigma,l,phi]),
-    np.array([first_beta,second_delta,Sigma,l,phi]),
-    np.array([second_beta,first_delta,Sigma,l,phi]),
+    np.array([first_beta ,first_delta ,Sigma,l,phi]),
+    np.array([first_beta ,second_delta,Sigma,l,phi]),
+    np.array([second_beta,first_delta ,Sigma,l,phi]),
     np.array([second_beta,second_delta,Sigma,l,phi]),
 ] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
@@ -89,13 +89,13 @@ mean_kern = np.zeros(n_estim)
 cov_kern = np.zeros((n_estim,n_estim))
 for i in range(n_estim):
     cov_kern[i][i] = prior_var(prior_pars[i])/frac_var_obs
-print(cov_kern)
+cov_kern = np.sqrt(cov_kern)
 obs_li_param = np.array([obs_li_param_x,obs_li_param_y,obs_li_param_th*np.pi/180])
 
 
 for item in id_list:
+    if item[0] == "#": continue
     id_traj = item[:-1]
-    if id_traj[0] == "#": continue
     out_dir = os.path.join(proj_path,"Data","Fits",f"Traj_{id_traj}")
     if not(os.path.exists(out_dir)): os.mkdir(out_dir)
     len_trajs = len(datadf[datadf["id_traj"]==id_traj])
@@ -142,7 +142,7 @@ for item in id_list:
     t_traj_ini = mtime.time()
     print(f"start with traj {id_traj}")
     traj = data
-    ln_Ls_trial = np.ones(C)*ln_L0
+    ln_Ls = np.ones(C)*ln_L0
 
     log_file_name = f"log_trial_chains-Traj_{id_traj}.dat"
     chains_file = f"Trial_chains-Traj_{id_traj}.dat"
@@ -159,6 +159,7 @@ for item in id_list:
             last_par.append(chains_trial[i][j][-1])
         par_end.append(last_par)
     #sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
+    #sigma_opt = np.sqrt(sigma_opt)
     #print(sigma_opt,par_end)
     
     sigma_opt = cov_kern 

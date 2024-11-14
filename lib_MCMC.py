@@ -86,6 +86,13 @@ def proposal_kernel_rv(mean_kern,cov_kern,n_estim,n=1):
     return np.transpose(pp)[0]
 
 @njit
+def proposal_kernel_rv_diag(mean_kern,cov_kern,n_estim):
+    """
+    rv from a multivariate normal with no correlation
+    """
+    return np.array([np.random.normal(mean_kern[i],cov_kern[i][i]) for i in range(n_estim)])
+
+@njit
 def obs_like(X,Y,Nvar,sigma):
     """
     Observation likelyhood from data
@@ -315,7 +322,7 @@ def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li
         param_0 = init_params[i]
         print("\n Chain",i,"init param", param_0,"####################"*10,"\n")
         time_init = mtime.time()
-        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_Ls[i],proposal_kernel_rv,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param)
+        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_Ls[i],proposal_kernel_rv_diag,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param)
         time_fin = mtime.time()
         extime = time_fin - time_init
         print("execution time", extime, "s", extime/60, "min")
