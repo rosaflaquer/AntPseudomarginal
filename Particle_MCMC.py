@@ -52,8 +52,9 @@ with open(os.path.join(dirname,"config.par"),"r") as f:
 
 #%%
 
+number_of_available = get_num_threads() 
 set_num_threads(numthreads)
-print("Using", numthreads, "leaving ", get_num_threads() - numthreads, "free")
+print("Using", numthreads, "leaving ", number_of_available - numthreads, "free")
 
 
 #%%

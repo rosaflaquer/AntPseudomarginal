@@ -258,12 +258,12 @@ def convergence(chains,nparam,R,M):
         for i in range(R):
             zkpl[p][i] = 2/M*np.sum(zetas[p,i,int(M/2):])
             zkmi[p][i] = 2/M*np.sum(zetas[p,i,:int(M/2)])
-            skpl[p][i] = 2/(M-2)*np.sum(np.pow(zetas[p,i,int(M/2):]-zkpl[p][i],2))
-            skmi[p][i] = 2/(M-2)*np.sum(np.pow(zetas[:p,i,int(M/2)]-zkmi[p][i],2))
+            skpl[p][i] = 2/(M-2)*np.sum(np.power(zetas[p,i,int(M/2):]-zkpl[p][i],2))
+            skmi[p][i] = 2/(M-2)*np.sum(np.power(zetas[:p,i,int(M/2)]-zkmi[p][i],2))
         zk[p] = 0.5/R*np.sum(zkpl[p]+zkmi[p])
     B,W = np.zeros(nparam),np.zeros(nparam) 
     for p in range(nparam):
-        B[p] = M/(4*R-2)*np.sum(np.pow(zkpl[p] - zk[p],2)+np.pow(zkmi[p] - zk[p],2))
+        B[p] = M/(4*R-2)*np.sum(np.power(zkpl[p] - zk[p],2)+np.power(zkmi[p] - zk[p],2))
         W[p] = 0.5/R*np.sum(skpl[p]+skmi[p])
     hatR,V = np.zeros(nparam),np.zeros(nparam)
     for p in range(nparam):
