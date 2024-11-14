@@ -1,6 +1,6 @@
 datafile = beta_0.4-delta_0.05-time_150
 traj_idx = 2
-numthreads = 14
+numthreads = 16
 seed = 42
 R_trial = 250
 M_trial = 1000
