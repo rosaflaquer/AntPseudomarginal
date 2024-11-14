@@ -136,11 +136,11 @@ with open(os.path.join(data_dir,config_name),"w") as f:
 
 
 def execute(init_params,cov_kern,ln_Ls,R,M,C,log_file_name,chains_file,data_dir):
-    for i in range(C):
-        chains = np.zeros((C,n_estim,M+1))
-        dfc = pd.DataFrame([])
-        log_file = open(os.path.join(data_dir,log_file_name),"w")
+    chains = np.zeros((C,n_estim,M+1))
+    dfc = pd.DataFrame([])
+    log_file = open(os.path.join(data_dir,log_file_name),"w")
 
+    for i in range(C):
         param_0 = init_params[i]
         print("\n Chain",i,"init param", param_0,"####################"*10,"\n")
         time_init = mtime.time()
@@ -155,15 +155,15 @@ def execute(init_params,cov_kern,ln_Ls,R,M,C,log_file_name,chains_file,data_dir)
         dfc[f"ln_L_{i}"] = naccept
         dfc[f"accep_{i}"] = ln_L
         dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
-        log_file.write(f"chain = {i} ################################################## \n")
+        log_file.write(f"chain = {i} \n")
         log_file.write(f"execution time = {extime} \n")
-        hatR,ESS = convergence(chains,n_estim,C,M+1)
-        log_file.write("Convergence ########### \n")
-        log_file.write(f"hatR = {hatR} \n")
-        log_file.write(f"ESS = {ESS} \n")
-        log_file.close()
-        print(f"hatR = {hatR}, ESS = {ESS}")
-        return chains,ln_Ls
+    hatR,ESS = convergence(chains,n_estim,C,M+1)
+    log_file.write("Convergence ########### \n")
+    log_file.write(f"hatR = {hatR} \n")
+    log_file.write(f"ESS = {ESS} \n")
+    log_file.close()
+    print(f"hatR = {hatR}, ESS = {ESS}")
+    return chains,ln_Ls
     
 
 #%%
