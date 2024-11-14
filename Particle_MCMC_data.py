@@ -67,7 +67,7 @@ ln_L0 = 0
 C = 4 #number of chains
 n_estim = 5
 
-h = 0.1
+h = 0.2
 sqh = np.sqrt(h)
 l,phi,Mu,Sigma,th0 = 13,0.9,0.0,6.5,1.0
 known_param = np.array([v,Mu,th0])
@@ -91,9 +91,9 @@ init_params = [
 mean_kern = np.zeros(n_estim)
 cov_kern = np.zeros((n_estim,n_estim))
 for i in range(n_estim):
-    cov_kern[i][i] = prior_var(prior_pars[i])/200
+    cov_kern[i][i] = prior_var(prior_pars[i])/100
 print(cov_kern)
-obs_li_param = np.array([24,24,5*np.pi/180]) #From bbox histograms.
+obs_li_param = np.array([24,24,10*np.pi/180]) #From bbox histograms.
 
 config_name = f"cofig_{id_traj}.dat"
 with open(os.path.join(out_dir,config_name),"w") as f:

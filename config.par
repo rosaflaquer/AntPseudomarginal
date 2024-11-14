@@ -1,4 +1,4 @@
-datafile = "beta_0.4-delta_0.05-time_150"
+datafile = beta_0.4-delta_0.05-time_150
 traj_idx = 2
 numthreads = 14
 seed = 42
