@@ -134,40 +134,6 @@ with open(os.path.join(data_dir,config_name),"w") as f:
 
 #%%
 
-
-def execute(init_params,cov_kern,ln_Ls,R,M,C,log_file_name,chains_file,data_dir):
-    chains = np.zeros((C,n_estim,M+1))
-    dfc = pd.DataFrame([])
-    log_file = open(os.path.join(data_dir,log_file_name),"w")
-
-    for i in range(C):
-        param_0 = init_params[i]
-        print("\n Chain",i,"init param", param_0,"####################"*10,"\n")
-        time_init = mtime.time()
-        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_Ls[i],proposal_kernel_rv,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param)
-        time_fin = mtime.time()
-        extime = time_fin - time_init
-        print("execution time", extime, "s", extime/60, "min")
-        for j in range(n_estim):
-            chains[i][j]= parameters_0[:,j]
-            dfc[f"par{j}_{i}"] = parameters_0[:,j]
-        ln_Ls[i] = ln_L[-1]
-        dfc[f"ln_L_{i}"] = naccept
-        dfc[f"accep_{i}"] = ln_L
-        dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
-        log_file.write(f"chain = {i} \n")
-        log_file.write(f"execution time = {extime} \n")
-    hatR,ESS = convergence(chains,n_estim,C,M+1)
-    log_file.write("Convergence ########### \n")
-    log_file.write(f"hatR = {hatR} \n")
-    log_file.write(f"ESS = {ESS} \n")
-    log_file.close()
-    print(f"hatR = {hatR}, ESS = {ESS}")
-    return chains,ln_Ls
-    
-
-#%%
-
 t_traj_ini = mtime.time()
 print(f"start with traj {idx}")
 traj = data[idx]
@@ -175,7 +141,7 @@ ln_Ls = np.ones(C)*ln_L0
 
 log_file_name = f"log_trial_chains-traj_{idx}.dat"
 chains_file = f"Trial_chains-traj_{idx}.dat"
-chains_trial,ln_Ls_trial = execute(init_params,cov_kern,ln_Ls,R_trial,M_trial,C,log_file_name,chains_file,data_dir)
+chains_trial,ln_Ls_trial = execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh)
 print("\n Done computing trial chains \n")
 
 #compute optimal sigma
@@ -194,7 +160,7 @@ print(sigma_opt,par_end)
 ln_Ls = ln_Ls_trial
 log_file_name = f"log_chains-traj_{idx}.dat"
 chains_file = f"Chains-traj_{idx}.dat"
-chains_trial,ln_Ls_trial = execute(par_end,sigma_opt,ln_Ls,R,M,C,log_file_name,chains_file,data_dir)
+chains,ln_Ls= execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh)
 print("\n Done computing chains \n")
 
 t_traj_fin = mtime.time()
