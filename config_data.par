@@ -1,5 +1,5 @@
 datafile = 2022_Transformed_nomin_width_50-frames_40.dat
-numthreads = 16
+numthreads = 2
 seed = 42
 R_trial = 300
 M_trial = 10000
@@ -30,3 +30,4 @@ obs_li_param_x = 24
 obs_li_param_y = 24
 obs_li_param_th = 10
 frac_var_obs = 100
+id_trajs_file = shorter_id_trajs.par

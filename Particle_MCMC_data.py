@@ -47,8 +47,9 @@ with open(os.path.join(dirname,"config_data.par"),"r") as f:
     obs_li_param_y = float(f.readline().split()[-1])
     obs_li_param_th = float(f.readline().split()[-1])
     frac_var_obs = float(f.readline().split()[-1])
+    id_trajs_file = f.readline().split()[-1]
 
-with open(os.path.join(dirname,"id_trajs.par"),"r") as f:
+with open(os.path.join(dirname,id_trajs_file),"r") as f:
     id_list = f.readlines()
 
 number_of_available = get_num_threads() 
