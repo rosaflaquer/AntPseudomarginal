@@ -146,7 +146,7 @@ for item in id_list:
 
     log_file_name = f"log_trial_chains-Traj_{id_traj}.dat"
     chains_file = f"Trial_chains-Traj_{id_traj}.dat"
-    chains_trial,ln_Ls_trial = execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh)
+    chains_trial,ln_Ls_trial = execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,out_dir,traj,model_step,h,sqh)
     print("\n Done computing trial chains \n")
 
     #compute optimal sigma
@@ -167,7 +167,7 @@ for item in id_list:
     dfc = pd.DataFrame([])
     log_file_name = f"log_chains-Traj_{id_traj}.dat"
     chains_file = f"Chains-Traj_{id_traj}.dat"
-    chains,ln_Ls= execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh)
+    chains,ln_Ls= execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,out_dir,traj,model_step,h,sqh)
     print("\n Done computing chains \n")
 
     t_traj_fin = mtime.time()
