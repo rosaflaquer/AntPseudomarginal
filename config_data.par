@@ -1,4 +1,4 @@
-datafile = 2022_Transformed_width_50-frames_40.dat
+datafile = 2022_Transformed_nomin_width_50-frames_40.dat
 numthreads = 16
 seed = 42
 R_trial = 300
