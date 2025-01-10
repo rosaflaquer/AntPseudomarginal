@@ -11,8 +11,8 @@ font.size : 25
 xtick.labelsize : 30
 ytick.labelsize : 30
 
-#font.family : lmodern #'cmunrm'
-#text.usetex  : True
+font.family : lmodern #'cmunrm'
+text.usetex  : True
 
 xtick.top : False  
 xtick.direction : inout

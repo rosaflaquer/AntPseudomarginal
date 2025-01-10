@@ -5,17 +5,32 @@ from scipy.special import ndtri
 import pandas as pd
 import time as mtime
 import os
+import lib_model_extended as modl
 
 @njit 
-def getIC(data,n):
+def getIC(data,n,neq,neq_dat):
     """
     Returns the IC of a trajectory stored in data. #Can be from a distribution if we want.
     """
-    ics = np.ones((n,3))
-    ics[:,0] = data[0,0]
-    ics[:,1] = data[1,0]
-    ics[:,2] = data[2,0]
+    ics = np.ones((n,neq))
+    for i in range(neq_dat):
+        ics[:,i] = data[i,0]
+    for i in range(neq_dat,neq):
+        ics[:,i] = 0
     return ics
+
+@njit 
+def getIC_pars(data,n,neq,neq_dat,known_param,estimate_param):
+    """
+    Returns the IC of a trajectory stored in data. #Can be from a distribution if we want.
+    """
+    ics = np.ones((n,neq))
+    for i in range(neq_dat):
+        ics[:,i] = data[i,0]
+    ics[:,neq_dat]   = modl.Cl(ics[:,0],ics[:,1],ics[:,2],modl.phtrail,known_param,estimate_param)
+    ics[:,neq_dat+1] = modl.Cl(ics[:,0],ics[:,1],ics[:,2],modl.phtrail,known_param,estimate_param)
+    return ics
+
 
 
 @njit
@@ -107,22 +122,28 @@ def log_obs_like(X,Y,Nvar,sigma):
     """
     Observation likelyhood from data
     """
-    log_obsl = -0.5*np.sum(np.log(sigma)) - (Nvar/2.0)*np.log(2*np.pi) -0.5*np.sum(((X-Y)/sigma)**2)
+    log_obsl = -np.sum(np.log(sigma)) - (Nvar/2.0)*np.log(2*np.pi) -0.5*np.sum(((X-Y)/sigma)**2)
     return log_obsl
 
 @njit
-def MCMC(M,n_estim,param_0,L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern,estimate_L,data,R,model,obs_li_f,obs_li_param,h,sqh,known_param):
+def MCMC(M,n_estim,param_0,L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern,estimate_L,data,R,model,obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat):
     parameters = np.zeros((M+1,n_estim)) 
     parameters[0] = param_0
     val_prior = prior(param_0,prior_pars)
     naccept = 0
     for m in range(1,M+1): #montecarlo steps
         valid = False
-        while not(valid):
+        count_proposals = 0
+        while not(valid) or count_proposals < 10000:
             proposal = parameters[m-1] + proposal_kernel(mean_kern,cov_kern,n_estim)
             val_prior_prop = prior(proposal,prior_pars)
             if val_prior_prop > 0 : valid = True
-        L_star = estimate_L(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param) #For this implementation, pseudoespectral method with a bootstrap particle filter.
+            count_proposals += 1
+        print("count_proposals",count_proposals)
+        if valid == False:
+            print("No valid proposal found")
+            break
+        L_star = estimate_L(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat) #For this implementation, pseudoespectral method with a bootstrap particle filter.
         alpha = np.min(np.array([1,(L_star*val_prior_prop)/(L*val_prior)]))
         u = np.random.uniform(0,1)
         if u < alpha: 
@@ -132,6 +153,7 @@ def MCMC(M,n_estim,param_0,L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern
             naccept += 1            
         else:
             parameters[m] = parameters[m-1]
+        #if m > 0: 
         if m%int(M*0.05) == 0: 
             print("m=",m,"rate accepted","{:.3f}".format(naccept/m),"total accepted",naccept)
             print("Current pars.","{:.3f},{:.3f}".format(parameters[m]))
@@ -143,7 +165,7 @@ def MCMC(M,n_estim,param_0,L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern
 
 
 @njit
-def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern,estimate_ln_L,data,R,model,obs_li_f,obs_li_param,h,sqh,known_param):
+def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,cov_kern,estimate_ln_L,data,R,model,obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat):
     parameters = np.zeros((M+1,n_estim)) 
     parameters[0] = param_0
     ln_val_prior = np.log(prior(param_0,prior_pars))
@@ -153,12 +175,17 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
     v_ln_Ls[0] = ln_L
     for m in range(1,M+1): #montecarlo steps
         valid = False
-        while not(valid):
+        count_proposals = 0.0
+        while not(valid) and count_proposals < 10**6:
             proposal = parameters[m-1] + proposal_kernel(mean_kern,cov_kern,n_estim)
             val_prior_prop = prior(proposal,prior_pars)
             if val_prior_prop > 0 : valid = True
+            count_proposals += 1.0
+        if valid == False:
+            print("No valid proposal found")
+            break
         ln_val_prior_prop = np.log(val_prior_prop)
-        ln_L_star = estimate_ln_L(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param)
+        ln_L_star = estimate_ln_L(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat)
         aa = ln_L_star + ln_val_prior_prop - ln_L - ln_val_prior
         ln_alpha = np.min(np.array([0.0, aa]))
         alpha = np.exp(ln_alpha)
@@ -185,10 +212,10 @@ def ln_MCMC(M,n_estim,param_0,ln_L,proposal_kernel,prior,prior_pars,mean_kern,co
 
 
 @njit(parallel=True)
-def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param):
+def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat):
     ncoord_t,N = np.shape(data) #number of coordenates and time observations
     Ncoord = ncoord_t-1 #take out the time.
-    state = getIC(data[:Ncoord],R) #initialize the R particles. 
+    state = getIC(data[:Ncoord],R,neq,neq_dat) #initialize the R particles. 
     ts = data[Ncoord] #get the data points.
     weights = np.zeros(R) #initialize the weights
     Lstar = 1
@@ -199,7 +226,7 @@ def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param):
         Y = data[:Ncoord,i+1]  #data points
         for k in prange(R): #loop over the particles
             state[k],t_ev = model(state[k],t,h,sqh,Nt,known_param,proposal) #evolve from t_i to t_i+1
-            w = obs_li_f(state[k],Y,Ncoord,obs_li_param)
+            w = obs_li_f(state[k,:neq_dat],Y,Ncoord,obs_li_param)
             weights[k] = w
         wsum = np.sum(weights)
         if wsum == 0: 
@@ -208,7 +235,7 @@ def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param):
         Lstar = Lstar*wsum/R #TODO: make it log once this works.
         w_norm = weights/wsum
         cum_w = np.cumsum(w_norm)
-        state_resampled = np.zeros((R,Ncoord))
+        state_resampled = np.zeros((R,neq))
         for k in prange(R):
             state_resampled[k] = state[np.where(cum_w>=np.random.uniform(0,1))[0][0]]
         state = state_resampled
@@ -216,10 +243,11 @@ def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param):
 
 
 @njit(parallel=True)
-def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_param):
+def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat):
     ncoord_t,N = np.shape(data) #number of coordenates and time observations
     Ncoord = ncoord_t-1 #take out the time.
-    state = getIC(data[:Ncoord],R) #initialize the R particles. 
+    #state = getIC(data[:Ncoord],R,neq,neq_dat) #initialize the R particles. 
+    state = getIC_pars(data[:Ncoord],R,neq,neq_dat,known_param,proposal) #initialize the R particles. 
     ts = data[Ncoord] #get the data points.
     weights = np.zeros(R,dtype=np.float64) #initialize the weights
     ln_weights = np.zeros(R,dtype=np.float64) #initialize the weights
@@ -231,7 +259,8 @@ def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_par
         Y = data[:Ncoord,i+1]  #data points
         for k in prange(R): #loop over the particles
             state[k],t_ev = model(state[k],t,h,sqh,Nt,known_param,proposal) #evolve from t_i to t_i+1
-            lnw =  log_obs_li_f(state[k],Y,Ncoord,obs_li_param)
+            lnw =  log_obs_li_f(state[k,:neq_dat],Y,Ncoord,obs_li_param)
+            #print("w",lnw,"state",state[k],"Y",Y,"diff",np.abs(state[k,:neq_dat]-Y))
             ln_weights[k] = lnw
         weights = np.exp(ln_weights)
         marginal = np.sum(weights)
@@ -241,7 +270,7 @@ def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_par
         ln_Lstar = ln_Lstar + np.log(marginal)  
         w_norm = weights/marginal
         cum_w = np.cumsum(w_norm)
-        state_resampled = np.zeros((R,Ncoord))
+        state_resampled = np.zeros((R,neq))
         for k in prange(R):
             state_resampled[k] = state[np.where(cum_w>=np.random.uniform(0,1))[0][0]]
         state = state_resampled
@@ -313,7 +342,7 @@ def autocorrelation(data,max_lag):
     result /= result[0]  # Normalize
     return result[:max_lag+1]
 
-def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh):
+def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh,neq,neq_dat):
     chains = np.zeros((C,n_estim,M+1))
     dfc = pd.DataFrame([])
     log_file = open(os.path.join(data_dir,log_file_name),"w")
@@ -322,7 +351,7 @@ def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li
         param_0 = init_params[i]
         print("\n Chain",i,"init param", param_0,"####################"*10,"\n")
         time_init = mtime.time()
-        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_Ls[i],proposal_kernel_rv_diag,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param)
+        parameters_0,naccept,ln_L = ln_MCMC(M,n_estim,param_0,ln_Ls[i],proposal_kernel_rv_diag,prior_dist,prior_pars,mean_kern,cov_kern,ln_bootstrap,traj,R,model_step,log_obs_like,obs_li_param,h,sqh,known_param,neq,neq_dat)
         time_fin = mtime.time()
         extime = time_fin - time_init
         print("execution time", extime, "s", extime/60, "min")

@@ -4,13 +4,14 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from numba import get_num_threads, set_num_threads
-import lib_model
+import lib_model_extended as lib
 import seaborn as sns
 import pandas as pd
 
+#%%
 n_threads = get_num_threads()
 print("Number of threads possible threads for this execution", n_threads)
-space = 0
+space = 8
 numthreads = n_threads-space
 set_num_threads(numthreads)
 print("Using", numthreads, "leaving ", space, "free")
@@ -22,7 +23,7 @@ prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 
 
-data_dir = os.path.join(proj_path,"Data","Synthetic")
+data_dir = os.path.join(proj_path,"Data","Synthetic","Delay")
 if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 #%%
 #Generate a trajectory from the data #TODO: substitute this step for actual data one working.
@@ -30,17 +31,17 @@ if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 t_fin = 150 
 dwr = 1 
 #v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
-v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,6.5,1.0
-param = np.array([v,Mu,th0]) #"known" model parameters
-beta, delta = np.array([0.4,0.05])
-ks = np.array([beta, delta, Sigma,l,phi]) #This is what we want to inffer!
+v,l,phi,Mu,Sigma,th0 = 5,13,0.9,0.0,15.0,1.0
+param = np.array([v,Mu,th0,Sigma,l,phi]) #"known" model parameters
+beta, delta, gamma = np.array([0.2,0.075,0.6])
+ks = np.array([beta, delta,gamma]) #This is what we want to inffer!
 
 
 #Simulation setup.
 h = 0.01 #time step
 Nt = int(t_fin/h)
 iwr = int(dwr/h)
-Ntraj = 150
+Ntraj = 25
 Ntraj_ic = 1
 
 
@@ -50,9 +51,11 @@ Ntraj_ic = 1
 names = ["Time","x","y","theta","id_traj"]
 df = pd.DataFrame(columns=names)
 for i in range(Ntraj):
-    ci = np.array([0,0,np.random.uniform(np.pi/2-0.5,np.pi/2)]) #TODO: initial condition from the trajectory
+    ci = np.array([0,0,np.random.uniform(np.pi/2-0.5,np.pi/2),0,0]) #TODO: initial condition from the trajectory
+    ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
     #ci = np.array([0,0,np.random.uniform(3*np.pi/2-0.5,3*np.pi/2)]) #TODO: initial condition from the trajectory
-    data = lib_model.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,Ntraj_ic)
+    data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,Ntraj_ic)
     xindx = np.arange(0,Ntraj_ic*len(ci),len(ci))
     yindx = np.arange(1,Ntraj_ic*len(ci),len(ci))
     thindx= np.arange(2,Ntraj_ic*len(ci),len(ci))
@@ -81,7 +84,7 @@ for idx in df["id_traj"].unique():
 ax[0].set(xlim=[-60,60])
 ax[1].set(ylim=[-60,60])
 
-name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
+name = f"beta_{beta}-delta_{delta}-gamma_{gamma}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 if not(os.path.exists(data_dir)) : os.mkdir(data_dir)
 fig.savefig(os.path.join(data_dir,f"Synthetic-{name}.png"),format="png",
@@ -102,8 +105,8 @@ plt.show()
 trajs = df.groupby(["id_traj"])
 df["diff"] = trajs["Time"].diff(1)
 df["dth"] = trajs["theta"].diff(1)/df["diff"]
-df["Cl"] = lib_model.Cl(df["x"].values,df["y"].values,df["theta"].values,lib_model.phtrail,param,ks)
-df["Cr"] = lib_model.Cr(df["x"].values,df["y"].values,df["theta"].values,lib_model.phtrail,param,ks)
+df["Cl"] = lib.Cl(df["x"].values,df["y"].values,df["theta"].values,lib.phtrail,param,ks)
+df["Cr"] = lib.Cr(df["x"].values,df["y"].values,df["theta"].values,lib.phtrail,param,ks)
 df["Cc"] = (df["Cl"] - df["Cr"])*np.sin(df["theta"])
 
 #%%
