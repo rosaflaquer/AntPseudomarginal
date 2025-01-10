@@ -96,9 +96,16 @@ obs_li_param = np.array([obs_li_param_x,obs_li_param_y,obs_li_param_th*np.pi/180
 
 for item in id_list:
     if item[0] == "#": continue
-    id_traj = item[:-1]
-    out_dir = os.path.join(proj_path,"Data","Fits",f"Traj_{id_traj}")
-    if not(os.path.exists(out_dir)): os.mkdir(out_dir)
+    id_traj = item.strip("\n")
+    id_folder = id_traj
+    is_segment = id_folder.find("0_s")
+    id_folder = id_folder[:is_segment+2]
+    if is_segment > 0: out_dir_list = ["Data","Fits","NoPause",f"Traj_{id_folder}"]
+    else: out_dir_list = ["Data","Fits",f"Traj_{id_traj}"]
+    out_dir = proj_path
+    for directory in out_dir_list:
+        out_dir = os.path.join(out_dir,directory)
+        if not(os.path.exists(out_dir)): os.mkdir(out_dir)
     len_trajs = len(datadf[datadf["id_traj"]==id_traj])
     data = np.zeros((4,len_trajs))
     day_traj = datadf[datadf["id_traj"]==id_traj]

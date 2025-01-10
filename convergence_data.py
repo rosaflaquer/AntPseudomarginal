@@ -267,8 +267,8 @@ for name in folders:
 
 #%%
 
-with open(os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data","Converged.dat"), 'w') as outfile:
-  outfile.write('\n'.join(str(i) for i in converged))
+#with open(os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data","Converged.dat"), 'w') as outfile:
+#  outfile.write('\n'.join(str(i) for i in converged))
 
 #%%
 fig,axs = plt.subplots(ncols=2,nrows=1,figsize=(11*2,11))

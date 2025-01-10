@@ -1,5 +1,5 @@
 datafile = 2022_Transformed_nomin_width_50-frames_40.dat
-numthreads = 2
+numthreads = 12
 seed = 42
 R_trial = 300
 M_trial = 10000
