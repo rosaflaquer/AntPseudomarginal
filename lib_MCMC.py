@@ -6,6 +6,7 @@ import pandas as pd
 import time as mtime
 import os
 import lib_model_extended as modl
+import concurrent.futures
 
 @njit 
 def getIC(data,n,neq,neq_dat):
@@ -244,12 +245,30 @@ def bootstrap(data,R,model,proposal,obs_li_f,obs_li_param,h,sqh,known_param,neq,
 
 @njit(parallel=True)
 def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_param,neq,neq_dat):
+    """
+    Perform a bootstrap particle filter with log-likelihood.
+
+    Parameters:
+    data (ndarray): The observed data.
+    R (int): Number of particles.
+    model (function): The model function to evolve the state.
+    proposal (ndarray): Proposed parameters.
+    log_obs_li_f (function): Log-likelihood function for observations.
+    obs_li_param (float): Observation likelihood parameter.
+    h (float): Time step size.
+    sqh (float): Square root of h.
+    known_param (ndarray): Known parameters.
+    neq (int): Number of equations.
+    neq_dat (int): Number of data equations.
+
+    Returns:
+    float: Log-likelihood of the observed data given the model and parameters.
+    """
     ncoord_t,N = np.shape(data) #number of coordenates and time observations
     Ncoord = ncoord_t-1 #take out the time.
     #state = getIC(data[:Ncoord],R,neq,neq_dat) #initialize the R particles. 
     state = getIC_pars(data[:Ncoord],R,neq,neq_dat,known_param,proposal) #initialize the R particles. 
     ts = data[Ncoord] #get the data points.
-    weights = np.zeros(R,dtype=np.float64) #initialize the weights
     ln_weights = np.zeros(R,dtype=np.float64) #initialize the weights
     ln_Lstar = 0
     for i in range(N-1): #loop over the observaitons
@@ -260,15 +279,14 @@ def ln_bootstrap(data,R,model,proposal,log_obs_li_f,obs_li_param,h,sqh,known_par
         for k in prange(R): #loop over the particles
             state[k],t_ev = model(state[k],t,h,sqh,Nt,known_param,proposal) #evolve from t_i to t_i+1
             lnw =  log_obs_li_f(state[k,:neq_dat],Y,Ncoord,obs_li_param)
-            #print("w",lnw,"state",state[k],"Y",Y,"diff",np.abs(state[k,:neq_dat]-Y))
             ln_weights[k] = lnw
-        weights = np.exp(ln_weights)
-        marginal = np.sum(weights)
-        if marginal == 0: 
+        mx = np.max(ln_weights)
+        ln_marginal = np.log(np.sum(np.exp(ln_weights - mx))) + mx
+        if np.isinf(ln_marginal): 
             ln_Lstar = -np.inf
             break
-        ln_Lstar = ln_Lstar + np.log(marginal)  
-        w_norm = weights/marginal
+        ln_Lstar = ln_Lstar + ln_marginal
+        w_norm = np.exp(ln_weights - ln_marginal)
         cum_w = np.cumsum(w_norm)
         state_resampled = np.zeros((R,neq))
         for k in prange(R):
@@ -344,6 +362,7 @@ def autocorrelation(data,max_lag):
 
 def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh,neq,neq_dat):
     chains = np.zeros((C,n_estim,M+1))
+    accepted = np.zeros(C)
     dfc = pd.DataFrame([])
     log_file = open(os.path.join(data_dir,log_file_name),"w")
 
@@ -358,9 +377,10 @@ def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li
         for j in range(n_estim):
             chains[i][j]= parameters_0[:,j]
             dfc[f"par{j}_{i}"] = parameters_0[:,j]
+        accepted[i] = naccept[-1]/M
         ln_Ls[i] = ln_L[-1]
-        dfc[f"ln_L_{i}"] = naccept
-        dfc[f"accep_{i}"] = ln_L
+        dfc[f"ln_L_{i}"] = ln_L 
+        dfc[f"accep_{i}"] = naccept
         dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
         log_file.write(f"chain = {i} \n")
         log_file.write(f"execution time = {extime} \n")
@@ -370,5 +390,5 @@ def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li
     log_file.write(f"ESS = {ESS} \n")
     log_file.close()
     print(f"hatR = {hatR}, ESS = {ESS}")
-    return chains,ln_Ls
+    return chains,ln_Ls,accepted
     

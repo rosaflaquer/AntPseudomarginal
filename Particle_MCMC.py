@@ -112,11 +112,19 @@ known_param = np.array([v,Mu,th0,Sigma,l,phi,gamma])
 #known_param = np.array([v,Mu,th0])
 
 init_params = [
-    np.array([(second_beta - first_beta)/2*(1+0.1) + first_beta,(second_delta - first_delta)/2*(1+0.1) + first_delta]), #, gamma]),
-    np.array([(second_beta - first_beta)/2*(1+0.1) + first_beta,(second_delta - first_delta)/2*(1-0.1) + first_delta]), #, gamma]),
-    np.array([(second_beta - first_beta)/2*(1-0.1) + first_beta,(second_delta - first_delta)/2*(1+0.1) + first_delta]), #, gamma]),
-    np.array([(second_beta - first_beta)/2*(1-0.1) + first_beta,(second_delta - first_delta)/2*(1-0.1) + first_delta]), #, gamma ]),
+    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_delta - first_delta)/2*(1+0.25) + first_delta ]), #gamma ]),
+    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_delta - first_delta)/2*(1-0.25) + first_delta ]), #gamma ]),
+    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_delta - first_delta)/2*(1+0.25) + first_delta ]), #gamma ]),
+    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_delta - first_delta)/2*(1-0.25) + first_delta ]), #gamma ]),
 ] #Init the four chains at the edges of the parameter dsitr, to explore space. 
+
+
+#init_params = [
+#    np.array([first_beta+0.001, first_delta+0.001 ]),
+#    np.array([first_beta+0.001, second_delta-0.001]),
+#    np.array([second_beta-0.001,first_delta+0.001 ]),
+#    np.array([second_beta-0.001,second_delta-0.001]),
+#] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
 print(init_params)
 
@@ -176,35 +184,46 @@ ln_Ls = np.ones(C)*log_obs_like(traj[:neq_dat,0],traj[:neq_dat,0],neq_dat,obs_li
 print(ln_Ls)
 
 #%%
+
 log_file_name = f"log_trial_chains-traj_{idx}.dat"
 chains_file = f"Trial_chains-traj_{idx}.dat"
-chains_trial,ln_Ls_trial = execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh,neq,neq_dat)
-print("\n Done computing trial chains \n")
+chains_trial,ln_Ls_trial,accepted_trial = execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh,neq,neq_dat)
+print("\n Done computing trial chains \n", accepted_trial)
 
 #compute optimal sigma
 par_complte = np.zeros(((M_trial+1)*C,n_estim))
 par_end = []
 for i in range(C):
     last_par = []
+    if accepted_trial[i] < 0.1:
+        continue
     for j in range(n_estim):
         par_complte[i*(M_trial+1):(M_trial+1)*(i+1),j]  = chains_trial[i][j]
         last_par.append(chains_trial[i][j][-1])
     par_end.append(last_par)
 sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
-sigma_opt = np.sqrt(sigma_opt)
-#if np.isnan(sigma_opt).any():
+#sigma_opt = np.sqrt(sigma_opt)
 print(sigma_opt,cov_kern)
-sigma_opt = cov_kern
+if np.isnan(sigma_opt).any() or np.any(np.diagonal(sigma_opt) == 0):
+    sigma_opt = cov_kern
+    print("sigma_opt is nan or accepted is low, using cov_kern instead")
+if len(par_end) == 0:
+    print("Bad range")
+else: 
+    out_range = False
+    present = len(par_end)-1
+    while len(par_end) < C:
+        if present == 0: par_end.append(par_end[0])
+        else: par_end.append(par_end[np.random.randint(0,present)])
+    print(par_end)
+    ln_Ls = ln_Ls_trial
+    log_file_name = f"log_chains-traj_{idx}.dat"
+    chains_file = f"Chains-traj_{idx}.dat"
+    chains,ln_Ls,accepted = execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh,neq,neq_dat)
+    print("\n Done computing chains \n", accepted)
 
-
-ln_Ls = ln_Ls_trial
-log_file_name = f"log_chains-traj_{idx}.dat"
-chains_file = f"Chains-traj_{idx}.dat"
-chains,ln_Ls= execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,data_dir,traj,model_step,h,sqh,neq,neq_dat)
-print("\n Done computing chains \n")
-
-t_traj_fin = mtime.time()
-extime = t_traj_fin-t_traj_ini
-print(f"Done with traj {idx} execution time {extime//60}:{extime%60} min \n \n \n")
+    t_traj_fin = mtime.time()
+    extime = t_traj_fin-t_traj_ini
+    print(f"Done with traj {idx} execution time {extime//60}:{extime%60} min \n \n \n")
 
 #%%

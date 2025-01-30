@@ -14,8 +14,8 @@ colors = prop_cycle.by_key()['color']
 
 # %%
 #1) Load observations
-beta, delta, t_fin = 0.4,0.05,150
-name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
+beta, delta, gamma, t_fin = 0.4,0.075,0.7,150
+name = f"beta_{beta}-delta_{delta}-gamma_{gamma}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 data_file= f"Synthetic-{name}.dat"
 datadf = pd.read_csv(os.path.join(data_dir,data_file))
@@ -32,9 +32,9 @@ for i,id in enumerate(id_traj):
 
 ntraj_data = len(id_traj)
 #%%
-idx = 0
+idx = 7
 df = pd.read_csv(os.path.join(data_dir,f"Chains-traj_{idx}.dat"))
-nparam = 5
+nparam = 2
 C = int(len(df.columns)/(nparam+2))
 M = len(df)
 chains = []

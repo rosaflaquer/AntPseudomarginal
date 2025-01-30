@@ -15,7 +15,7 @@ colors = prop_cycle.by_key()['color']
 traj_dir = os.path.join(proj_path,"Data","Ant_data")
 data_file = "2022_Transformed_width_50-frames_40.dat"
 datadf = pd.read_csv(os.path.join(traj_dir,data_file))
-main_dir = os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data","Fits")
+main_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
 folders = os.listdir(main_dir)
 converged = []
 for name in folders:
@@ -141,6 +141,8 @@ for name in folders:
             
             
 
+
+
     #def sqdispl(datax,datay):
     #    if len(np.shape(datax)) > 1:
     #        return np.sum(np.sqrt((datax[1:]-datax[:-1])**2+(datay[1:]-datay[:-1])**2),axis=1)
@@ -226,7 +228,7 @@ for name in folders:
 
 
 
-main_dir = os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data","Fits")
+main_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
 folders = os.listdir(main_dir)
 converged = []
 for name in folders:
@@ -285,8 +287,8 @@ for name in folders:
     axs[ii].plot(day_traj["x"],day_traj["y"])
 
 filename = f"Conv_noconv.png"
-fig.savefig(os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data",filename),format="png",
-            facecolor="w",edgecolor="w",bbox_inches="tight")
+#fig.savefig(os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data",filename),format="png",
+#            facecolor="w",edgecolor="w",bbox_inches="tight")
 
 #%%
 fig,axs = plt.subplots(ncols=2,nrows=1,figsize=(11*2,11))
