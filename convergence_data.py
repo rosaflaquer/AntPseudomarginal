@@ -13,132 +13,142 @@ prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 #%%
 traj_dir = os.path.join(proj_path,"Data","Ant_data")
-data_file = "2022_Transformed_width_50-frames_40.dat"
+data_file = "2022_Transformed_nothetarnage_width_50-frames_40.dat"
 datadf = pd.read_csv(os.path.join(traj_dir,data_file))
-main_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
+main_dir = os.path.join(proj_path,"Data","Fits","Long_NoPause")
 folders = os.listdir(main_dir)
 converged = []
+id_traj = datadf["id_traj"].unique()
 for name in folders:
-
     data_dir = os.path.join(main_dir,name)
-    id_traj = datadf["id_traj"].unique()
-    Ntrajs = len(id_traj)
-    id = name[5:]
-    day_traj = datadf[datadf["id_traj"]==id]
-    print(len(day_traj))
-    data = np.zeros((4,len(day_traj)))
-    data[0] = day_traj["x"].values     
-    data[1] = day_traj["y"].values     
-    data[2] = day_traj["theta"].values 
-    data[3] = day_traj["Time"].values
+    for tr in id_traj:
+
+        is_segment = tr.find(".0_s")
+        if is_segment > 0: id_folder = tr[:is_segment+1]
+        else: id_folder = tr
+        #print(tr,name,id_folder,is_segment+1)
+        if id_folder != name[5:] : 
+            #print(id_folder,"##",name,"##")
+            continue
+        else : id_tr = tr
+        
+        f = open(os.path.join(data_dir,f"pars_{id_tr}.dat"),"w")
+        day_traj = datadf[datadf["id_traj"]==id_tr]
+        print(len(day_traj))
+        data = np.zeros((4,len(day_traj)))
+        data[0] = day_traj["x"].values     
+        data[1] = day_traj["y"].values     
+        data[2] = day_traj["theta"].values 
+        data[3] = day_traj["Time"].values
 
 
-    fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-    ax.plot(data[0],data[1])
-    ax.set(xlabel=r"$x$",ylabel=r"$y$")
-    filename = f"traj_{name}.png"
-    #fig.savefig(os.path.join(data_dir,filename),format="png",
-    #            facecolor="w",edgecolor="w",bbox_inches="tight")
+        fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+        ax.plot(data[0],data[1])
+        ax.set(xlabel=r"$x$",ylabel=r"$y$")
+        filename = f"traj_{id_tr}.png"
+        #fig.savefig(os.path.join(data_dir,filename),format="png",
+        #            facecolor="w",edgecolor="w",bbox_inches="tight")
 
 
-    file_name = "Chains-"
+        file_name = "Trial_chains-Traj_"
+        file_name = "Chains-Traj_"
 
-    df = pd.read_csv(os.path.join(data_dir,file_name+name+".dat"))
-    nparam = 5
-    #C = int(len(df.columns)/2)
-    C = int(len(df.columns)/(nparam+2))
-    M = len(df)
-    chains = []
-    for i in range(C):
-        par_ch = []
-        for j in range(nparam):
-            par_ch.append(df[f"par{j}_{i}"].values)
-        chains.append(par_ch)
-        #chains.append([df[f"beta_{i}"].values,df[f"delta_{i}"].values])
-    print(len(chains[0]))
-    hatR,Se = convergence(chains,nparam,C,M)
-    print(hatR,Se)
-
-    if np.all(hatR) < 1.2: converged.append(name)
-
-    dict_params = {
-        0 : [r"$\beta$",f"beta-{name}.png",np.zeros(M*C)],
-        1 : [r"$\delta$",f"delta-{name}.png",np.zeros(M*C)],
-        2 : [r"$\sigma$",f"sigma-{name}.png",np.zeros(M*C)],
-        3 : [r"$l$",f"l-{name}.png",np.zeros(M*C)],
-        4 : [r"$\phi$",f"phi-{name}.png",np.zeros(M*C)],
-    }
-
-    for j in range(nparam):
-        fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-        ax.set(ylabel=dict_params[j][0],xlabel="MC step")
+        df = pd.read_csv(os.path.join(data_dir,file_name+id_tr+".dat"))
+        nparam = 5
+        #C = int(len(df.columns)/2)
+        C = int(len(df.columns)/(nparam+2))
+        M = len(df)
+        chains = []
         for i in range(C):
-            ax.plot(chains[i][j])
-            dict_params[j][2] = chains[i][j]
-        plt.close()
-        fig.savefig(os.path.join(data_dir,dict_params[j][1]),format="png",
+            par_ch = []
+            for j in range(nparam):
+                par_ch.append(df[f"par{j}_{i}"].values)
+            chains.append(par_ch)
+            #chains.append([df[f"beta_{i}"].values,df[f"delta_{i}"].values])
+        print(len(chains[0]))
+        hatR,Se = convergence(chains,nparam,C,M)
+        print(hatR,Se)
+
+        if np.all(hatR) < 1.2: converged.append(id_tr)
+
+        dict_params = {
+            0 : [r"$\beta$",f"beta-{id_tr}.png",np.zeros(M*C)],
+            1 : [r"$\delta$",f"delta-{id_tr}.png",np.zeros(M*C)],
+            2 : [r"$\sigma$",f"sigma-{id_tr}.png",np.zeros(M*C)],
+            3 : [r"$l$",f"l-{id_tr}.png",np.zeros(M*C)],
+            4 : [r"$\phi$",f"phi-{id_tr}.png",np.zeros(M*C)],
+        }
+
+        for j in range(nparam):
+            fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+            ax.set(ylabel=dict_params[j][0],xlabel="MC step")
+            for i in range(C):
+                ax.plot(chains[i][j])
+                dict_params[j][2] = chains[i][j]
+            plt.close()
+            fig.savefig(os.path.join(data_dir,dict_params[j][1]),format="png",
+                        facecolor="w",edgecolor="w",bbox_inches="tight")
+
+
+
+        def plot(xx,xlabel,nbins,filename):
+            fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+            height, _, _ = ax.hist(xx,bins=nbins,density=True)
+            m = np.mean(xx)
+            sd = np.std(xx)
+            ci = [m-sd,m+sd]
+            ylims = [0, height.max()*(1+0.1)]
+            ax.vlines(m,ylims[0],ylims[1],color="black")
+            ax.fill_betweenx(ylims, ci[0], ci[1], color='black', alpha=0.35) 
+            ax.set(xlabel=xlabel,ylim=ylims)
+            plt.close()
+            fig.savefig(os.path.join(data_dir,filename),format="png",
                     facecolor="w",edgecolor="w",bbox_inches="tight")
 
+        nbins = 30
+        for j in range(nparam):
+            plot(dict_params[j][2],dict_params[j][0],nbins,"Distr_" + dict_params[j][1])
 
-
-    def plot(xx,xlabel,nbins,filename):
-        fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-        height, _, _ = ax.hist(xx,bins=nbins,density=True)
-        m = np.mean(xx)
-        sd = np.std(xx)
-        ci = [m-sd,m+sd]
-        ylims = [0, height.max()*(1+0.1)]
-        ax.vlines(m,ylims[0],ylims[1],color="black")
-        ax.fill_betweenx(ylims, ci[0], ci[1], color='black', alpha=0.35) 
-        ax.set(xlabel=xlabel,ylim=ylims)
-        plt.close()
-        fig.savefig(os.path.join(data_dir,filename),format="png",
-                facecolor="w",edgecolor="w",bbox_inches="tight")
-
-    nbins = 30
-    for j in range(nparam):
-        plot(dict_params[j][2],dict_params[j][0],nbins,"Distr_" + dict_params[j][1])
-
-
-    for i in range(nparam):
-        xx = dict_params[i][2]
-        for j in range(i+1,nparam):
-            yy = dict_params[j][2]
-            fig = plt.figure(figsize=(15,12))
-            ax = fig.add_gridspec(top=0.75, right=0.75).subplots()
-            ax_histx = ax.inset_axes([0, 1.05, 1, 0.25], sharex=ax)
-            ax_histy = ax.inset_axes([1.05, 0, 0.25, 1], sharey=ax)
-            ax_histx.tick_params(axis="x", labelbottom=False)
-            ax_histy.tick_params(axis="y", labelleft=False)
-
-            ax.set(xlabel=dict_params[i][0],ylabel=dict_params[j][0])
-            ax.hist2d(xx,yy,bins=20,cmap="binary")
-            #ax.scatter(xx,yy,s=5,alpha=0.2)
-
-            bins = 50        
-            ax.axvline(np.mean(xx),ls="--")
+        for i in range(nparam):
+            xx = dict_params[i][2]
             mb = np.mean(xx)
             sdb = np.std(xx)
-            ax.fill_betweenx([yy.min(),yy.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
+            f.write(f"{dict_params[i][0]},{mb},{sdb}\n")
+            for j in range(i+1,nparam):
+                yy = dict_params[j][2]
+                fig = plt.figure(figsize=(15,12))
+                ax = fig.add_gridspec(top=0.75, right=0.75).subplots()
+                ax_histx = ax.inset_axes([0, 1.05, 1, 0.25], sharex=ax)
+                ax_histy = ax.inset_axes([1.05, 0, 0.25, 1], sharey=ax)
+                ax_histx.tick_params(axis="x", labelbottom=False)
+                ax_histy.tick_params(axis="y", labelleft=False)
 
-            height, _,_ = ax_histx.hist(xx, bins=bins, density=True,color="black")
-            ax_histx.axvline(np.mean(xx),ls="--")
-            ax_histx.fill_betweenx([0,height.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
+                ax.set(xlabel=dict_params[i][0],ylabel=dict_params[j][0])
+                ax.hist2d(xx,yy,bins=20,cmap="binary")
+                #ax.scatter(xx,yy,s=5,alpha=0.2)
 
-            ax.axhline(np.mean(yy),ls="--")
-            md = np.mean(yy)
-            sdd = np.std(yy)
-            ax.fill_between([xx.min(),xx.max()], md - sdd, md + sdd, color=colors[0], alpha=0.15) 
+                bins = 50        
+                ax.axvline(np.mean(xx),ls="--")
+                ax.fill_betweenx([yy.min(),yy.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
 
-            height, _,_ = ax_histy.hist(yy, bins=bins, density=True, orientation='horizontal',color="black")
-            ax_histy.axhline(np.mean(yy),ls="--")
-            ax_histy.fill_between([0,height.max()],  md - sdd, md + sdd, color=colors[0], alpha=0.15) 
+                height, _,_ = ax_histx.hist(xx, bins=bins, density=True,color="black")
+                ax_histx.axvline(np.mean(xx),ls="--")
+                ax_histx.fill_betweenx([0,height.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
 
-            plt.close()
-            filename = f"Distr-traj_{name}_{i}_{j}.png"
-            fig.savefig(os.path.join(data_dir,filename),format="png",
-                            facecolor="w",edgecolor="w",bbox_inches="tight")
-            
+                ax.axhline(np.mean(yy),ls="--")
+                md = np.mean(yy)
+                sdd = np.std(yy)
+                ax.fill_between([xx.min(),xx.max()], md - sdd, md + sdd, color=colors[0], alpha=0.15) 
+
+                height, _,_ = ax_histy.hist(yy, bins=bins, density=True, orientation='horizontal',color="black")
+                ax_histy.axhline(np.mean(yy),ls="--")
+                ax_histy.fill_between([0,height.max()],  md - sdd, md + sdd, color=colors[0], alpha=0.15) 
+
+                plt.close()
+                filename = f"Distr-traj_{id_tr}_{i}_{j}.png"
+                fig.savefig(os.path.join(data_dir,filename),format="png",
+                                facecolor="w",edgecolor="w",bbox_inches="tight")
+        f.close()
             
 
 
@@ -228,6 +238,7 @@ for name in folders:
 
 
 
+#%%
 main_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
 folders = os.listdir(main_dir)
 converged = []

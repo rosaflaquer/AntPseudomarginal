@@ -147,7 +147,6 @@ mean_kern = np.zeros(n_estim)
 cov_kern = np.zeros((n_estim,n_estim))
 for i in range(n_estim):
     cov_kern[i][i] = prior_var(prior_pars[i])/frac_var_obs
-#print(cov_kern)
 cov_kern = np.sqrt(cov_kern)
 obs_li_param = np.array([obs_li_param_x,obs_li_param_y,obs_li_param_th*np.pi/180])
 

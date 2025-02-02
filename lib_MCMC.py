@@ -5,7 +5,7 @@ from scipy.special import ndtri
 import pandas as pd
 import time as mtime
 import os
-import lib_model_extended as modl
+import lib_model as modl
 import concurrent.futures
 
 @njit 
@@ -383,7 +383,7 @@ def execute(init_params,mean_kern,cov_kern,ln_Ls,R,M,C,n_estim,prior_pars,obs_li
         dfc[f"accep_{i}"] = naccept
         dfc.to_csv(os.path.join(data_dir,chains_file),index=False)
         log_file.write(f"chain = {i} \n")
-        log_file.write(f"execution time = {extime} \n")
+        log_file.write(f"execution time = {extime/60} min \n")
     hatR,ESS = convergence(chains,n_estim,C,M+1)
     log_file.write("Convergence ########### \n")
     log_file.write(f"hatR = {hatR} \n")

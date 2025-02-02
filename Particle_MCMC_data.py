@@ -47,6 +47,8 @@ with open(os.path.join(dirname,"config_data.par"),"r") as f:
     obs_li_param_y = float(f.readline().split()[-1])
     obs_li_param_th = float(f.readline().split()[-1])
     frac_var_obs = float(f.readline().split()[-1])
+    neq = int(f.readline().split()[-1])
+    neq_dat = int(f.readline().split()[-1])
     id_trajs_file = f.readline().split()[-1]
 
 with open(os.path.join(dirname,id_trajs_file),"r") as f:
@@ -71,11 +73,11 @@ prior_pars[1][0],prior_pars[1][1],prior_pars[1][2] = first_delta, second_delta, 
 prior_pars[2][0],prior_pars[2][1],prior_pars[2][2] = first_sigma, second_sigma, distr_sigma
 prior_pars[3][0],prior_pars[3][1],prior_pars[3][2] = first_l,second_l, distr_l
 prior_pars[4][0],prior_pars[4][1],prior_pars[4][2] = first_phi,second_phi, distr_phi
-if distr_sigma == 0: Sigma = second_sigma - first_sigma
+if distr_sigma == 0: Sigma = (second_sigma + first_sigma)*0.5
 elif distr_sigma == 1: Sigma = first_sigma
-if distr_l == 0: l = second_l - first_l
+if distr_l == 0: l = (second_l + first_l)*0.5
 elif distr_l == 1: l = first_l
-if distr_phi == 0: phi = second_phi - first_phi
+if distr_phi == 0: phi = (second_phi + first_phi)*0.5
 elif distr_phi == 1: phi = first_phi
 
 init_params = [
@@ -99,9 +101,9 @@ for item in id_list:
     id_traj = item.strip("\n")
     id_folder = id_traj
     is_segment = id_folder.find("0_s")
-    id_folder = id_folder[:is_segment+2]
+    id_folder = id_folder[:is_segment+1]
     if is_segment > 0: out_dir_list = ["Data","Fits","NoPause",f"Traj_{id_folder}"]
-    else: out_dir_list = ["Data","Fits",f"Traj_{id_traj}"]
+    else: out_dir_list = ["Data","Fits","Long_NoPause",f"Traj_{id_traj}"]
     out_dir = proj_path
     for directory in out_dir_list:
         out_dir = os.path.join(out_dir,directory)
@@ -109,6 +111,7 @@ for item in id_list:
     len_trajs = len(datadf[datadf["id_traj"]==id_traj])
     data = np.zeros((4,len_trajs))
     day_traj = datadf[datadf["id_traj"]==id_traj]
+    if len(day_traj) == 0: continue
     data[0] = day_traj["x"].values     
     data[1] = day_traj["y"].values     
     data[2] = day_traj["theta"].values 
@@ -143,9 +146,20 @@ for item in id_list:
         for i in range(C):
             f.write(f"param {i} = {init_params[i]} \n")
         f.write(f"h = {h} \n")
-        f.write(f"v,l,phi,Mu,Sigma,th0 = {v},{l},{phi},{Mu},{Sigma},{th0} \n")
+        f.write(f"v = {v} \n")
+        f.write(f"l = {l} \n")
+        f.write(f"phi = {phi} \n")
+        f.write(f"Mu = {Mu} \n")
+        f.write(f"Sigma = {Sigma} \n")
+        f.write(f"th0 = {th0} \n")
         f.write(f"obs_li_param = {obs_li_param} \n")
-        f.write(f"cov_kern = {cov_kern} \n")
+        for i in range(n_estim):
+            f.write(f"cov_kern {i} = {cov_kern[i]} \n")
+        for i in range(n_estim):
+            f.write(f"prior_pars {i} = {prior_pars[i]} \n")
+        f.write(f"neq = {neq} \n")
+        f.write(f"neq_dat = {neq_dat} \n")
+
 
     t_traj_ini = mtime.time()
     print(f"start with traj {id_traj}")
@@ -154,7 +168,7 @@ for item in id_list:
 
     log_file_name = f"log_trial_chains-Traj_{id_traj}.dat"
     chains_file = f"Trial_chains-Traj_{id_traj}.dat"
-    chains_trial,ln_Ls_trial = execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,out_dir,traj,model_step,h,sqh)
+    chains_trial,ln_Ls_trial,accepted_trial =  execute(init_params,mean_kern,cov_kern,ln_Ls,R_trial,M_trial,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,out_dir,traj,model_step,h,sqh,neq,neq_dat)
     print("\n Done computing trial chains \n")
 
     #compute optimal sigma
@@ -175,8 +189,8 @@ for item in id_list:
     dfc = pd.DataFrame([])
     log_file_name = f"log_chains-Traj_{id_traj}.dat"
     chains_file = f"Chains-Traj_{id_traj}.dat"
-    chains,ln_Ls= execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,out_dir,traj,model_step,h,sqh)
-    print("\n Done computing chains \n")
+    chains,ln_Ls,accepted= execute(par_end,mean_kern,sigma_opt,ln_Ls,R,M,C,n_estim,prior_pars,obs_li_param,known_param,log_file_name,chains_file,out_dir,traj,model_step,h,sqh,neq,neq_dat)
+    print("\n Done computing chains \n", accepted)
 
     t_traj_fin = mtime.time()
     extime = t_traj_fin-t_traj_ini

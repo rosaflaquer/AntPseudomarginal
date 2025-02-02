@@ -4,7 +4,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from numba import get_num_threads, set_num_threads
-import lib_model_extended as lib
+import lib_model as lib
 import pandas as pd
 
 #%%
@@ -25,34 +25,28 @@ if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 #%%
 #Generate a trajectory from the data #TODO: substitute this step for actual data one working.
 
-t_fin = 150 
+t_fin = 1500 
 dwr = 1 
-#v,l,phi,Mu,Sigma,th0 = 0.5,0.2,1.0,0.0,1.0,1.0
-v,l,phi,Mu,Sigma,th0,gamma = 5,13,0.9,0.0,15.0,1.0,0.07
-param = np.array([v,Mu,th0,Sigma,l,phi]) #"known" model parameters
-param = np.array([v,Mu,th0,Sigma,l,phi,gamma]) #"known" model parameters
-beta, delta= np.array([0.4,0.075]) #,0.7])
-ks = np.array([beta, delta,gamma]) #This is what we want to inffer!
-ks = np.array([beta, delta]) #This is what we want to inffer!
+v,l,phi,Mu,Sigma,th0 = 6,12.8,0.95,0.0,65,1.0
+param = np.array([v,Mu,th0]) #"known" model parameters
+beta, delta= np.array([1.5,0.081])
+ks = np.array([beta, delta,Sigma,l,phi]) #This is what we want to inffer!
 
 
 #Simulation setup.
-h = 0.01 #time step
+h = 0.1 #time step
 Nt = int(t_fin/h)
 iwr = int(dwr/h)
-Ntraj = 150
+Ntraj = 500
 Ntraj_ic = 1
 
 #%%
 
 names = ["Time","x","y","theta","dif","vx","vy","v","id_traj"]
 df = pd.DataFrame(columns=names)
+th0 = np.random.uniform(np.pi/2-0.5,np.pi/2)
 for i in range(Ntraj):
-    #ci = np.array([0,0,np.random.uniform(np.pi/2-0.5,np.pi/2),0,0]) #TODO: initial condition from the trajectory
-    ci = np.array([0,0,np.pi/2-0.2,0,0]) #TODO: initial condition from the trajectory
-    ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
-    ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
-    #ci = np.array([0,0,np.random.uniform(3*np.pi/2-0.5,3*np.pi/2)]) #TODO: initial condition from the trajectory
+    ci = np.array([0,0,th0]) #TODO: initial condition from the trajectory
     data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,Ntraj_ic)
     xindx = np.arange(0,Ntraj_ic*len(ci),len(ci))
     yindx = np.arange(1,Ntraj_ic*len(ci),len(ci))
@@ -77,11 +71,15 @@ ths = []
 xs = []
 ys = []
 DT = 1
-for idx in df["id_traj"].unique()[:500]:
+for idx in df["id_traj"].unique()[:1500]:
     traj = df[df["id_traj"]==idx]
     ths.append(traj.theta.values[DT])
     xs.append(traj.x.values[DT])
     ys.append(traj.y.values[DT])
+#%%
+for idx in [50,100,150,250,-1]:
+    print("theta",np.std(ths[:idx]),np.std(np.abs(xs[:idx])))
+
 #%%
 #plot histos
 nb = 50
@@ -104,7 +102,7 @@ fig, ax = plt.subplots(ncols=1,nrows=1,figsize=(9,5))
 traj_ids = df["id_traj"].unique()
 num_trajs =len(traj_ids)
 colors_lines = plt.cm.Greys(np.linspace(0.1,0.9,num_trajs))
-for i,id in enumerate(traj_ids):
+for i,id in enumerate(traj_ids[:50]):
     traj = df[df["id_traj"] == id].copy()
     traj =traj.dropna()
     auto_corr = np.correlate(traj["vy"] - traj["vy"].mean(), traj["vy"] - traj["vy"].mean(), mode='full')[len(traj) - 1:] # Only take second half
@@ -166,7 +164,7 @@ ax.set(xlabel=r"$t$", ylabel=r"$\langle \rho_x(0)\rho_x(t) \rangle/\langle \rho_
        title=r"$\rho_x$ Delay")
 plt.show()
 
-name = f"beta_{beta}-delta_{delta}-gamma_{gamma}-time_{t_fin}"
+name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic","Delay",name)
 if not(os.path.exists(data_dir)) : os.mkdir(data_dir)
 fig.savefig(os.path.join(data_dir,f"Autocorrx-{name}.png"),format="png",
@@ -179,6 +177,7 @@ fig.savefig(os.path.join(data_dir,f"Autocorrx-{name}.png"),format="png",
 fig, ax = plt.subplots(ncols=1,nrows=4,figsize=(11,6*4))
 for idx in df["id_traj"].unique():
     traj = df[df["id_traj"]==idx]
+    if np.any(traj["x"].abs() > 50): continue
     ax[0].plot(traj.x,traj.y)
     ax[0].set(xlabel="x",ylabel="y")
     ax[1].plot(traj.Time,traj.x)
@@ -189,10 +188,17 @@ for idx in df["id_traj"].unique():
     ax[3].set(xlabel="t",ylabel="th")
 ax[0].set(xlim=[-60,60])
 ax[1].set(ylim=[-60,60])
+#%%
 
+counter = 0
+for idx in df["id_traj"].unique():
+    traj = df[df["id_traj"]==idx]
+    if np.any(traj["x"].abs() > 150): continue
+    counter+=1
+print(counter,counter/Ntraj)
 
 #%%
-name = f"beta_{beta}-delta_{delta}-gamma_{gamma}-time_{t_fin}"
+name = f"beta_{beta}-delta_{delta}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 if not(os.path.exists(data_dir)) : os.mkdir(data_dir)
 fig.savefig(os.path.join(data_dir,f"Synthetic-{name}.png"),format="png",
