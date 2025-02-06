@@ -1,5 +1,5 @@
 datafile = 2022_Transformed_nothetarnage_width_50-frames_40.dat
-numthreads = 14
+numthreads = 12
 seed = 42
 R_trial = 550
 M_trial = 1000
