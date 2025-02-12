@@ -5,7 +5,7 @@ from scipy.special import ndtri
 import pandas as pd
 import time as mtime
 import os
-import lib_model as modl
+import lib_model_extended as modl
 import concurrent.futures
 
 @njit 
@@ -29,7 +29,7 @@ def getIC_pars(data,n,neq,neq_dat,known_param,estimate_param):
     for i in range(neq_dat):
         ics[:,i] = data[i,0]
     ics[:,neq_dat]   = modl.Cl(ics[:,0],ics[:,1],ics[:,2],modl.phtrail,known_param,estimate_param)
-    ics[:,neq_dat+1] = modl.Cl(ics[:,0],ics[:,1],ics[:,2],modl.phtrail,known_param,estimate_param)
+    ics[:,neq_dat+1] = modl.Cr(ics[:,0],ics[:,1],ics[:,2],modl.phtrail,known_param,estimate_param)
     return ics
 
 
@@ -54,13 +54,13 @@ def histo_from_data(data,nbins=50):
     cum = np.cumsum(probs)*(bins[1]-bins[0])
     return probs,bins,cum
 
-@njit
-def prior_rvs(prior_pars):
-    n_estim = len(prior_pars)
-    values = np.zeros(n_estim)
-    for i in range(n_estim):
-        values[i] = np.random.uniform(prior_pars[i][0],prior_pars[i][1])
-    return values
+#@njit
+#def prior_rvs(prior_pars):
+#    n_estim = len(prior_pars)
+#    values = np.zeros(n_estim)
+#    for i in range(n_estim):
+#        values[i] = np.random.uniform(prior_pars[i][0],prior_pars[i][1])
+#    return values
 
 @njit
 def prior_var(prior_pars):

@@ -100,17 +100,16 @@ for item in id_list:
     if item[0] == "#": continue
     id_traj = item.strip("\n")
     id_folder = id_traj
-    is_segment = id_folder.find("0_s")
-    id_folder = id_folder[:is_segment+1]
-    if is_segment > 0: out_dir_list = ["Data","Fits","NoPause",f"Traj_{id_folder}"]
-    else: out_dir_list = ["Data","Fits","Long_NoPause",f"Traj_{id_traj}"]
+    print(f"start with traj {id_traj}")
+    out_dir_list = ["Data","Fits","Cut",f"Traj_{id_folder}"]
     out_dir = proj_path
     for directory in out_dir_list:
         out_dir = os.path.join(out_dir,directory)
         if not(os.path.exists(out_dir)): os.mkdir(out_dir)
-    len_trajs = len(datadf[datadf["id_traj"]==id_traj])
+    day_traj = datadf[datadf["id_traj"]==id_traj][:-20] #TODO: cut of the last points!!!!!!!!!!!!!!!!!!!!!
+    len_trajs = len(day_traj)
+    print(len_trajs)
     data = np.zeros((4,len_trajs))
-    day_traj = datadf[datadf["id_traj"]==id_traj]
     if len(day_traj) == 0: continue
     data[0] = day_traj["x"].values     
     data[1] = day_traj["y"].values     
@@ -162,7 +161,6 @@ for item in id_list:
 
 
     t_traj_ini = mtime.time()
-    print(f"start with traj {id_traj}")
     traj = data
     ln_Ls = np.ones(C)*ln_L0
 

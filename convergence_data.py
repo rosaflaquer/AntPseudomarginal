@@ -13,19 +13,19 @@ prop_cycle = plt.rcParams['axes.prop_cycle']
 colors = prop_cycle.by_key()['color']
 #%%
 traj_dir = os.path.join(proj_path,"Data","Ant_data")
-data_file = "2022_Transformed_nothetarnage_width_50-frames_40.dat"
+#data_file = "2022_Transformed_nothetarnage_width_50-frames_40.dat"
+data_file = "2022_Transformed_nomin_width_50-frames_40.dat"
 datadf = pd.read_csv(os.path.join(traj_dir,data_file))
-main_dir = os.path.join(proj_path,"Data","Fits","Long_NoPause","250")
+main_dir = os.path.join(proj_path,"Data","Fits","Cut")
 folders = os.listdir(main_dir)
 converged = []
 id_traj = datadf["id_traj"].unique()
+#%%
 for name in folders:
     data_dir = os.path.join(main_dir,name)
     for tr in id_traj:
 
-        is_segment = tr.find(".0_s")
-        if is_segment > 0: id_folder = tr[:is_segment+1]
-        else: id_folder = tr
+        id_folder = tr
         #print(tr,name,id_folder,is_segment+1)
         if id_folder != name[5:] : 
             #print(id_folder,"##",name,"##")
@@ -239,14 +239,15 @@ for name in folders:
 
 
 #%%
-main_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
-folders = os.listdir(main_dir)
+main_dir = os.path.join(proj_path,"Data","Fits","Cut")
+elements = os.listdir(main_dir)
+folders = [element for element in elements if os.path.isdir(os.path.join(main_dir, element))]
 converged = []
 for name in folders:
-
+    
     data_dir = os.path.join(main_dir,name)
-    traj_dir = os.path.join(proj_path,"Data","Ant_data")
-    data_file = "2022_Transformed_width_50-frames_40.dat"
+    #traj_dir = os.path.join(proj_path,"Data","Ant_data")
+    #data_file = "2022_Transformed_width_50-frames_40.dat"
     datadf = pd.read_csv(os.path.join(traj_dir,data_file))
     id_traj = datadf["id_traj"].unique()
     Ntrajs = len(id_traj)
@@ -280,8 +281,8 @@ for name in folders:
 
 #%%
 
-#with open(os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data","Converged.dat"), 'w') as outfile:
-#  outfile.write('\n'.join(str(i) for i in converged))
+with open(os.path.join(main_dir,"Converged.dat"), 'w') as outfile:
+  outfile.write('\n'.join(str(i) for i in converged))
 
 #%%
 fig,axs = plt.subplots(ncols=2,nrows=1,figsize=(11*2,11))
@@ -293,13 +294,14 @@ for i in range(2):
 for name in folders:
     id = name[5:]
     day_traj = datadf[datadf["id_traj"]==id]
+    print(id,day_traj)
     if name in converged: ii = 0
     else: ii = 1
     axs[ii].plot(day_traj["x"],day_traj["y"])
 
 filename = f"Conv_noconv.png"
-#fig.savefig(os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data",filename),format="png",
-#            facecolor="w",edgecolor="w",bbox_inches="tight")
+fig.savefig(os.path.join(main_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
 
 #%%
 fig,axs = plt.subplots(ncols=2,nrows=1,figsize=(11*2,11))
@@ -328,7 +330,7 @@ xx = np.linspace(0,7.5,1000)
 ax.plot(xx,xx,color="black")
 
 filename = f"Vmin_vmax.png"
-fig.savefig(os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data",filename),format="png",
+fig.savefig(os.path.join(main_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
 
 #%%
@@ -342,11 +344,14 @@ for i,name in enumerate(folders):
     ax.scatter(i,day_traj["$|v|$"].max() - day_traj["$|v|$"].min(),color=color)
 #%%
 ncols = 3
-nrows = len(converged)//ncols+len(converged)%ncols
+nrows = len(converged)//ncols+len(converged)%ncols - 1 
 fig,axs = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
-plt.suptitle(r"$l$")
+plt.suptitle(r"$\beta$")
+old_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
+means = []
 for k,name in enumerate(converged):
     data_dir = os.path.join(main_dir,name)
+    #data_dir = os.path.join(old_dir,name)
     id_traj = datadf["id_traj"].unique()
     file_name = "Chains-"
     df = pd.read_csv(os.path.join(data_dir,file_name+name+".dat"))
@@ -371,7 +376,7 @@ for k,name in enumerate(converged):
     for j in range(nparam):
         for i in range(C):
             dict_params[j][1] = chains[i][j]
-    xx = dict_params[3][1]
+    xx = dict_params[0][1]
     height, _, _ = axs[k//ncols][k%ncols].hist(xx,bins=nbins,density=True)
     m = np.mean(xx)
     sd = np.std(xx)
@@ -379,7 +384,142 @@ for k,name in enumerate(converged):
     ylims = [0, height.max()*(1+0.1)]
     axs[k//ncols][k%ncols].vlines(m,ylims[0],ylims[1],color="black")
     axs[k//ncols][k%ncols].fill_betweenx(ylims, ci[0], ci[1], color='black', alpha=0.35) 
-filename = f"ls.png"
-fig.savefig(os.path.join(proj_path,"Data","Fits","Fits09","mcmc","Data",filename),format="png",
+    axs[k//ncols][k%ncols].text(0.6,0.8,name,transform=axs[k//ncols][k%ncols].transAxes)
+    means.append(m)
+axs[-1][-1].hist(means,bins=10,density=True,color=colors[1])
+axs[-1][-1].text(0.6,0.8,"Total",transform=axs[-1][-1].transAxes)
+filename = f"bs.png"
+fig.savefig(os.path.join(main_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
 
+
+# %%
+ncols = 3
+nrows = len(converged)//ncols+len(converged)%ncols - 1 
+fig,axs = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+for k,name in enumerate(converged):
+    ax = axs[k//ncols][k%ncols]
+    ax.set(xlabel=r"$x$", ylabel=r"$y$")
+    ax.axvline(0,color="black")
+    ax.axhline(0,color="black")
+    id = name[5:]
+    day_traj = datadf[datadf["id_traj"]==id]    
+    xx = day_traj["x"]
+    yy = day_traj["y"]
+    ax.plot(xx,yy,color=colors[2],label="Old",lw=7)
+    ax.plot(xx[:-20],yy[:-20],color=colors[0],label="Cut",lw=7,ls="--")
+    ax.text(0.6,0.8,name,transform=ax.transAxes)
+    ax.legend(loc="best")
+# %%
+filename = "Trajs.png"
+fig.savefig(os.path.join(main_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+# %%
+ncols = 3
+nrows = len(converged)//ncols+len(converged)%ncols - 1 
+fig_1,axs_1 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+fig_2,axs_2 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+fig_3,axs_3 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+fig_old_1,axs_old_1 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+fig_old_2,axs_old_2 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+fig_old_3,axs_old_3 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
+axs = [axs_1,axs_2,axs_3]
+axs_old = [axs_old_1,axs_old_2,axs_old_3]
+for k,name in enumerate(converged):
+    
+    rw = k//ncols
+    cl = k%ncols
+
+    file_name = "Chains-"
+    df = pd.read_csv(os.path.join(main_dir,name,file_name+name+".dat"))
+    df_old = pd.read_csv(os.path.join(old_dir,name,file_name+name+".dat"))
+    nparam = 5
+    C = int(len(df.columns)/(nparam+2))
+    M = len(df)
+    C_old = int(len(df.columns)/(nparam+2))
+    M_old = len(df)
+    chains = []
+    chains_old = []
+    for i in range(C):
+        par_ch = []
+        for j in range(3):
+            par_ch.append(df[f"par{j}_{i}"].values)
+        chains.append(par_ch)
+    for i in range(C_old):
+        par_ch = []
+        for j in range(3):
+            par_ch.append(df_old[f"par{j}_{i}"].values)
+        chains_old.append(par_ch)
+
+    dict_params = {
+            0 : [r"$\beta$", np.zeros(M*C),np.zeros(M_old*C_old)],
+            1 : [r"$\delta$",np.zeros(M*C),np.zeros(M_old*C_old)],
+            2 : [r"$\sigma$",np.zeros(M*C),np.zeros(M_old*C_old)],
+        }
+
+    for j in range(3):
+        for i in range(C):
+            dict_params[j][1] = chains[i][j]
+        for i in range(C_old):
+            dict_params[j][2] = chains_old[i][j]
+    
+    count = 0
+    for i in range(3):
+        xx = dict_params[i][1]
+        xx_old = dict_params[i][2]
+        mb = np.mean(xx)
+        sdb = np.std(xx)
+        mb_old = np.mean(xx_old)
+        sdb_old = np.std(xx_old)
+        for j in range(i+1,3):
+            ax = axs[count][rw][cl]
+            ax_old = axs_old[count][rw][cl]
+            yy = dict_params[j][1]
+            yy_old = dict_params[j][2]
+
+            ax.set(xlabel=dict_params[i][0],ylabel=dict_params[j][0])
+            ax.hist2d(xx,yy,bins=20,cmap="binary")
+            ax_old.set(xlabel=dict_params[i][0],ylabel=dict_params[j][0])
+            ax_old.hist2d(xx_old,yy_old,bins=20,cmap="binary")
+
+
+            bins = 50        
+            ax.axvline(np.mean(xx),ls="--")
+            ax.fill_betweenx([yy.min(),yy.max()], mb - sdb, mb + sdb, color=colors[0], alpha=0.15) 
+            ax_old.axvline(np.mean(xx_old),ls="--", color=colors[2]) 
+            ax_old.fill_betweenx([yy_old.min(),yy_old.max()], mb_old - sdb_old, mb_old + sdb_old, color=colors[2], alpha=0.15) 
+
+
+            ax.axhline(np.mean(yy),ls="--")
+            md = np.mean(yy)
+            sdd = np.std(yy)
+            ax.fill_between([xx.min(),xx.max()], md - sdd, md + sdd, color=colors[0], alpha=0.15)
+            ax_old.axhline(np.mean(yy_old),ls="--", color=colors[2])
+            md = np.mean(yy_old)
+            sdd = np.std(yy_old)
+            ax_old.fill_between([xx.min(),xx.max()], md - sdd, md + sdd, color=colors[2], alpha=0.15)  
+
+            ax.text(0.6,0.8,name,transform=ax.transAxes)
+            ax_old.text(0.6,0.8,name,transform=ax_old.transAxes)
+            count += 1
+
+
+# %%
+filename = "Marginal_b_d"
+fig_1.savefig(os.path.join(main_dir,filename+".png"),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+fig_old_1.savefig(os.path.join(main_dir,filename+"_old.png"),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+
+filename = "Marginal_b_s"
+fig_2.savefig(os.path.join(main_dir,filename+".png"),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+fig_old_2.savefig(os.path.join(main_dir,filename+"_old.png"),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+
+filename = "Marginal_d_s"
+fig_3.savefig(os.path.join(main_dir,filename+".png"),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+fig_old_3.savefig(os.path.join(main_dir,filename+"_old.png"),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
+# %%

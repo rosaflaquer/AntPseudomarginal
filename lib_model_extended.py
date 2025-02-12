@@ -4,26 +4,26 @@ from numba import njit, prange
 
 @njit
 def phtrail(x,y,known_param,estimate_param):
-    v,Mu,th0,Sigma,l,phi,gamma = known_param
-    beta, delta = estimate_param
+    v,Mu,th0,Sigma,l,phi,delta,beta = known_param
+    gamma = estimate_param[0]
     return np.exp(-((x-Mu)/Sigma)**2)
 
 @njit
 def Cl(x,y,theta,trail,known_param,estimate_param):
-    v,Mu,th0,Sigma,l,phi,gamma = known_param
-    beta, delta = estimate_param
+    v,Mu,th0,Sigma,l,phi,delta,beta = known_param
+    gamma = estimate_param[0]
     return trail(x + l*np.cos(th0*(theta + phi)),y + l*np.sin(th0*(theta + phi)),known_param,estimate_param)
 
 @njit
 def Cr(x,y,theta,trail,known_param,estimate_param):
-    v,Mu,th0,Sigma,l,phi,gamma = known_param
-    beta, delta = estimate_param
+    v,Mu,th0,Sigma,l,phi,delta,beta = known_param
+    gamma = estimate_param[0]
     return trail(x + l*np.cos(th0*(theta - phi)),y + l*np.sin(th0*(theta - phi)),known_param,estimate_param)
 
 @njit
 def qs(zz,t,known_param,estimate_param):
-    v,Mu,th0,Sigma,l,phi,gamma = known_param
-    beta, delta = estimate_param
+    v,Mu,th0,Sigma,l,phi,delta,beta= known_param
+    gamma = estimate_param[0]
     x,y,th,al,ar = zz[0],zz[1],zz[2],zz[3],zz[4]
     q1 = v*np.cos(th0*(th))
     q2 = v*np.sin(th0*(th))
@@ -34,8 +34,8 @@ def qs(zz,t,known_param,estimate_param):
 
 @njit
 def gs(zz,t,known_param,estimate_param):
-    v,Mu,th0,Sigma,l,phi,gamma = known_param
-    beta, delta = estimate_param
+    v,Mu,th0,Sigma,l,phi,delta,beta= known_param
+    gamma = estimate_param[0]
     g1 = 0
     g2 = 0
     g3 = delta

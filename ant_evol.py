@@ -4,7 +4,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from numba import get_num_threads, set_num_threads
-import lib_model as lib
+import lib_model_extended as lib
 import pandas as pd
 
 #%%
@@ -25,53 +25,97 @@ if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 #%%
 #Generate a trajectory from the data #TODO: substitute this step for actual data one working.
 
-t_fin = 1500 
+t_fin = 200
 dwr = 1 
-v,l,phi,Mu,Sigma,th0 = 6,12.8,0.95,0.0,65,1.0
-param = np.array([v,Mu,th0]) #"known" model parameters
-beta, delta= np.array([1.5,0.081])
-ks = np.array([beta, delta,Sigma,l,phi]) #This is what we want to inffer!
+v = 6
+l = 12.8
+phi = 0.95
+Mu = 0.0
+Sigma = 6.5
+th0 = 1.0
+delta = 0.1
+beta = 1.5
+gamma = 3
+param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #"known" model parameters
+ks = np.array([gamma]) #This is what we want to inffer!
 
 
 #Simulation setup.
-h = 0.1 #time step
+h = 0.01 #time step
 Nt = int(t_fin/h)
 iwr = int(dwr/h)
-Ntraj = 500
-Ntraj_ic = 1
+Ntraj = 75
 
 #%%
 
 names = ["Time","x","y","theta","dif","vx","vy","v","id_traj"]
 df = pd.DataFrame(columns=names)
-th0 = np.random.uniform(np.pi/2-0.5,np.pi/2)
+th_ic0 = np.random.uniform(np.pi/2-0.5,np.pi/2)
 for i in range(Ntraj):
-    ci = np.array([0,0,th0]) #TODO: initial condition from the trajectory
-    data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,Ntraj_ic)
-    xindx = np.arange(0,Ntraj_ic*len(ci),len(ci))
-    yindx = np.arange(1,Ntraj_ic*len(ci),len(ci))
-    thindx= np.arange(2,Ntraj_ic*len(ci),len(ci))
-    for j in range(Ntraj_ic):
-        df_temp = pd.DataFrame(columns=names)
-        df_temp["Time"] = np.arange(0,int(Nt/iwr))*dwr
-        df_temp["x"] = data[xindx[j]]
-        df_temp["y"] = data[yindx[j]]
-        df_temp["theta"] = data[thindx[j]]
-        df_temp["dif"] = df_temp["Time"].diff()
-        df_temp["vx"] = (df_temp["x"].shift(-1) - df_temp["x"])/df_temp["dif"]
-        df_temp["vy"] = (df_temp["y"].shift(-1) - df_temp["y"])/df_temp["dif"]
-        df_temp["v"]  = np.sqrt(df_temp["vx"].pow(2)+df_temp["vy"].pow(2)) 
-        df_temp["id_traj"] = f"ic{i}_tr{j}"
-        df = pd.concat([df,df_temp],ignore_index=True)
-        del(df_temp)
+    ci = np.array([0,0,th_ic0,0,0]) #TODO: initial condition from the trajectory
+    ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,1)
+    xindx = np.arange(0,len(ci),len(ci))
+    yindx = np.arange(1,len(ci),len(ci))
+    thindx= np.arange(2,len(ci),len(ci))
+    j=0
+    df_temp = pd.DataFrame(columns=names)
+    df_temp["Time"] = np.arange(0,int(Nt/iwr))*dwr
+    df_temp["x"] = data[xindx[j]]
+    df_temp["y"] = data[yindx[j]]
+    df_temp["theta"] = data[thindx[j]]
+    df_temp["dif"] = df_temp["Time"].diff()
+    df_temp["vx"] = (df_temp["x"].shift(-1) - df_temp["x"])/df_temp["dif"]
+    df_temp["vy"] = (df_temp["y"].shift(-1) - df_temp["y"])/df_temp["dif"]
+    df_temp["v"]  = np.sqrt(df_temp["vx"].pow(2)+df_temp["vy"].pow(2)) 
+    df_temp["id_traj"] = f"ic{i}_tr{j}"
+    df = pd.concat([df,df_temp],ignore_index=True)
+    del(df_temp)
+#%%
+#plot data
+fig, ax = plt.subplots(ncols=1,nrows=4,figsize=(11,6*4))
+counter = 0
+for idx in df["id_traj"].unique():
+    traj = df[df["id_traj"]==idx]
+    if np.any(traj["x"].abs() > 50): continue
+    ax[0].plot(traj.x,traj.y)
+    ax[0].set(xlabel="x",ylabel="y")
+    ax[1].plot(traj.Time,traj.x)
+    ax[1].set(xlabel="t",ylabel="x")
+    ax[2].plot(traj.Time,traj.y)
+    ax[2].set(xlabel="t",ylabel="y")
+    ax[3].plot(traj.Time,traj.theta)
+    ax[3].set(xlabel="t",ylabel="th")
+    counter += 1
+ax[0].set(xlim=[-60,60])
+ax[1].set(ylim=[-60,60])
+#%%
+print(counter)
+#%%
+
+maxs_x = df.groupby("id_traj")["x"].max()
+maxs_y = df.groupby("id_traj")["y"].max()
 
 #%%
 
+plt.plot(np.arange(0,len(maxs_x)),maxs_x)
+plt.axhline(np.mean(maxs_x))
+print(np.mean(maxs_x))
+
+#%%
+name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-gamma_{gamma}-time_{t_fin}"
+data_dir = os.path.join(proj_path,"Data","Synthetic",name)
+
+if not(os.path.exists(data_dir)): os.mkdir(data_dir)
+df.to_csv(os.path.join(data_dir,f"Synthetic-{name}.dat"),index=False)
+
+#%%
 ths = []
 xs = []
 ys = []
 DT = 1
-for idx in df["id_traj"].unique()[:1500]:
+for idx in df["id_traj"].unique()[:500]:
     traj = df[df["id_traj"]==idx]
     ths.append(traj.theta.values[DT])
     xs.append(traj.x.values[DT])
@@ -173,21 +217,7 @@ fig.savefig(os.path.join(data_dir,f"Autocorrx-{name}.png"),format="png",
 
 
 #%%
-#plot data
-fig, ax = plt.subplots(ncols=1,nrows=4,figsize=(11,6*4))
-for idx in df["id_traj"].unique():
-    traj = df[df["id_traj"]==idx]
-    if np.any(traj["x"].abs() > 50): continue
-    ax[0].plot(traj.x,traj.y)
-    ax[0].set(xlabel="x",ylabel="y")
-    ax[1].plot(traj.Time,traj.x)
-    ax[1].set(xlabel="t",ylabel="x")
-    ax[2].plot(traj.Time,traj.y)
-    ax[2].set(xlabel="t",ylabel="y")
-    ax[3].plot(traj.Time,traj.theta)
-    ax[3].set(xlabel="t",ylabel="th")
-ax[0].set(xlim=[-60,60])
-ax[1].set(ylim=[-60,60])
+
 #%%
 
 counter = 0

@@ -92,49 +92,60 @@ np.random.seed(seed)
 sqh = np.sqrt(h)
 prior_pars = np.ones((n_estim,3))
 
-prior_pars[0][0],prior_pars[0][1],prior_pars[0][2] = first_beta, second_beta, distr_beta
-prior_pars[1][0],prior_pars[1][1],prior_pars[1][2] = first_delta, second_delta, distr_delta
+#prior_pars[0][0],prior_pars[0][1],prior_pars[0][2] = first_beta, second_beta, distr_beta
+#prior_pars[1][0],prior_pars[1][1],prior_pars[1][2] = first_delta, second_delta, distr_delta
 #prior_pars[2][0],prior_pars[2][1],prior_pars[2][2] = first_sigma, second_sigma, distr_sigma
 #prior_pars[3][0],prior_pars[3][1],prior_pars[3][2] = first_l,second_l, distr_l
 #prior_pars[4][0],prior_pars[4][1],prior_pars[4][2] = first_phi,second_phi, distr_phi
 #prior_pars[5][0],prior_pars[5][1],prior_pars[5][2] = first_gamma,second_gamma, distr_gamma
-#prior_pars[2][0],prior_pars[2][1],prior_pars[2][2] = first_gamma,second_gamma, distr_gamma
+#prior_pars[1][0],prior_pars[1][1],prior_pars[1][2] = first_gamma,second_gamma, distr_gamma
+prior_pars[0][0],prior_pars[0][1],prior_pars[0][2] = first_gamma,second_gamma, distr_gamma
+
 if distr_sigma == 0: Sigma = (second_sigma - first_sigma)/2 + first_sigma
 elif distr_sigma == 1: Sigma = first_sigma
+
 if distr_l == 0: l = (second_l - first_l)/2 + first_l
 elif distr_l == 1: l = first_l
+
 if distr_phi == 0: phi = (second_phi - first_phi)/2 + first_phi
 elif distr_phi == 1: phi = first_phi
+
 if distr_gamma == 0:   gamma = (second_gamma - first_gamma)/2 + first_gamma
 elif distr_gamma == 1: gamma = first_gamma
 
-known_param = np.array([v,Mu,th0,Sigma,l,phi,gamma])
+if distr_delta == 0:   delta = (second_delta - first_delta)/2 + first_delta
+elif distr_delta == 1: delta = first_delta
+
+if distr_beta == 0:   beta = (second_beta - first_beta)/2 + first_beta
+elif distr_beta == 1: beta = first_beta
+
+
+#known_param = np.array([v,Mu,th0,Sigma,l,phi]) #TODO: change so that we infer beta and delta
+known_param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #TODO: change so that we infer beta and delta
 #known_param = np.array([v,Mu,th0])
 
-init_params = [
-    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_delta - first_delta)/2*(1+0.25) + first_delta ]), #gamma ]),
-    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_delta - first_delta)/2*(1-0.25) + first_delta ]), #gamma ]),
-    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_delta - first_delta)/2*(1+0.25) + first_delta ]), #gamma ]),
-    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_delta - first_delta)/2*(1-0.25) + first_delta ]), #gamma ]),
-] #Init the four chains at the edges of the parameter dsitr, to explore space. 
+#init_params = [
+#    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_gamma - first_gamma)/2*(1+0.25) + first_gamma ]), #gamma ]),
+#    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_gamma - first_gamma)/2*(1-0.25) + first_gamma ]), #gamma ]),
+#    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_gamma - first_gamma)/2*(1+0.25) + first_gamma ]), #gamma ]),
+#    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_gamma - first_gamma)/2*(1-0.25) + first_gamma ]), #gamma ]),
+#] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
+init_params = [
+    np.array([(second_gamma - first_gamma)/2*(1+0.25) + first_gamma ]),
+    np.array([(second_gamma - first_gamma)/2*(1-0.25) + first_gamma ]),
+    np.array([-(second_gamma - first_gamma)/2*(1+0.25) + second_gamma ]),
+    np.array([-(second_gamma - first_gamma)/2*(1-0.25) + second_gamma ]),
+] 
 
 #init_params = [
-#    np.array([first_beta+0.001, first_delta+0.001 ]),
-#    np.array([first_beta+0.001, second_delta-0.001]),
-#    np.array([second_beta-0.001,first_delta+0.001 ]),
-#    np.array([second_beta-0.001,second_delta-0.001]),
+#    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_delta - first_delta)/2*(1+0.25) + first_delta ]), #gamma ]),
+#    np.array([(second_beta - first_beta)/2*(1+0.25) + first_beta,(second_delta - first_delta)/2*(1-0.25) + first_delta ]), #gamma ]),
+#    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_delta - first_delta)/2*(1+0.25) + first_delta ]), #gamma ]),
+#    np.array([(second_beta - first_beta)/2*(1-0.25) + first_beta,(second_delta - first_delta)/2*(1-0.25) + first_delta ]), #gamma ]),
 #] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
 print(init_params)
-
-#init_params = [
-#    np.array([first_beta+0.001, first_delta+0.001 , gamma]),
-#    np.array([first_beta+0.001, second_delta-0.001, gamma]),
-#    np.array([second_beta-0.001,first_delta+0.001 , gamma]),
-#    np.array([second_beta-0.001,second_delta-0.001, gamma ]),
-#] #Init the four chains at the edges of the parameter dsitr, to explore space. 
-
 
 #init_params = [
 #    np.array([first_beta+0.001,first_delta+0.001,Sigma,l,phi  ,gamma]),
@@ -170,9 +181,6 @@ with open(os.path.join(data_dir,config_name),"w") as f:
 
 
 
-#%%
-
-print(prior_dist(init_params[0],prior_pars))
 
 #%%
 
@@ -181,6 +189,10 @@ print(f"start with traj {idx}")
 traj = data[idx]
 ln_Ls = np.ones(C)*log_obs_like(traj[:neq_dat,0],traj[:neq_dat,0],neq_dat,obs_li_param)
 print(ln_Ls)
+
+#%%
+for param_0 in init_params:
+    print(prior_dist(param_0,prior_pars))
 
 #%%
 
@@ -200,15 +212,16 @@ for i in range(C):
         par_complte[i*(M_trial+1):(M_trial+1)*(i+1),j]  = chains_trial[i][j]
         last_par.append(chains_trial[i][j][-1])
     par_end.append(last_par)
-sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
-#sigma_opt = np.sqrt(sigma_opt)
-print(sigma_opt,cov_kern)
-if np.isnan(sigma_opt).any() or np.any(np.diagonal(sigma_opt) == 0):
-    sigma_opt = cov_kern
-    print("sigma_opt is nan or accepted is low, using cov_kern instead")
+#sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
+##sigma_opt = np.sqrt(sigma_opt)
+#print(sigma_opt,cov_kern)
+#if np.isnan(sigma_opt).any() or np.any(np.diagonal(sigma_opt) == 0):
+#    sigma_opt = cov_kern
+#    print("sigma_opt is nan or accepted is low, using cov_kern instead")
 if len(par_end) == 0:
     print("Bad range")
-else: 
+else:
+    sigma_opt = cov_kern
     out_range = False
     present = len(par_end)-1
     while len(par_end) < C:
