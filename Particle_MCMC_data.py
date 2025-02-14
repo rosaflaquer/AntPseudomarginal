@@ -101,12 +101,12 @@ for item in id_list:
     id_traj = item.strip("\n")
     id_folder = id_traj
     print(f"start with traj {id_traj}")
-    out_dir_list = ["Data","Fits","Cut",f"Traj_{id_folder}"]
+    out_dir_list = ["Data","Fits","Larger_sigma",f"Traj_{id_folder}"]
     out_dir = proj_path
     for directory in out_dir_list:
         out_dir = os.path.join(out_dir,directory)
         if not(os.path.exists(out_dir)): os.mkdir(out_dir)
-    day_traj = datadf[datadf["id_traj"]==id_traj][:-20] #TODO: cut of the last points!!!!!!!!!!!!!!!!!!!!!
+    day_traj = datadf[datadf["id_traj"]==id_traj]   #[:-20] #TODO: cut of the last points!!!!!!!!!!!!!!!!!!!!!
     len_trajs = len(day_traj)
     print(len_trajs)
     data = np.zeros((4,len_trajs))

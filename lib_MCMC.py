@@ -5,7 +5,7 @@ from scipy.special import ndtri
 import pandas as pd
 import time as mtime
 import os
-import lib_model_extended as modl
+import lib_model as modl
 import concurrent.futures
 
 @njit 

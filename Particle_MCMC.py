@@ -132,10 +132,10 @@ known_param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #TODO: change so that 
 #] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
 init_params = [
-    np.array([(second_gamma - first_gamma)/2*(1+0.25) + first_gamma ]),
-    np.array([(second_gamma - first_gamma)/2*(1-0.25) + first_gamma ]),
-    np.array([-(second_gamma - first_gamma)/2*(1+0.25) + second_gamma ]),
-    np.array([-(second_gamma - first_gamma)/2*(1-0.25) + second_gamma ]),
+    np.array([first_gamma*(1+0.1)]),
+    np.array([(second_gamma + first_gamma)/2*(1-0.25)]),
+    np.array([(second_gamma + first_gamma)/2*(1+0.25) ]),
+    np.array([second_gamma*(1-0.1) ]),
 ] 
 
 #init_params = [
@@ -202,22 +202,12 @@ chains_trial,ln_Ls_trial,accepted_trial = execute(init_params,mean_kern,cov_kern
 print("\n Done computing trial chains \n", accepted_trial)
 
 #compute optimal sigma
-par_complte = np.zeros(((M_trial+1)*C,n_estim))
 par_end = []
 for i in range(C):
     last_par = []
-    if accepted_trial[i] < 0.1:
-        continue
     for j in range(n_estim):
-        par_complte[i*(M_trial+1):(M_trial+1)*(i+1),j]  = chains_trial[i][j]
         last_par.append(chains_trial[i][j][-1])
     par_end.append(last_par)
-#sigma_opt = 2.38**2/n_estim*np.cov(par_complte,rowvar=False)
-##sigma_opt = np.sqrt(sigma_opt)
-#print(sigma_opt,cov_kern)
-#if np.isnan(sigma_opt).any() or np.any(np.diagonal(sigma_opt) == 0):
-#    sigma_opt = cov_kern
-#    print("sigma_opt is nan or accepted is low, using cov_kern instead")
 if len(par_end) == 0:
     print("Bad range")
 else:

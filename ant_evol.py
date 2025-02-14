@@ -4,7 +4,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from numba import get_num_threads, set_num_threads
-import lib_model_extended as lib
+import lib_model as lib
 import pandas as pd
 
 #%%
@@ -35,16 +35,21 @@ Sigma = 6.5
 th0 = 1.0
 delta = 0.1
 beta = 1.5
-gamma = 3
-param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #"known" model parameters
-ks = np.array([gamma]) #This is what we want to inffer!
+gamma = 5
 
+#Model extended
+#param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #"known" model parameters
+#ks = np.array([gamma]) #This is what we want to inffer!
+
+#Regular
+param = np.array([v,Mu,th0,Sigma,l,phi])
+ks = np.array([beta,delta])
 
 #Simulation setup.
 h = 0.01 #time step
 Nt = int(t_fin/h)
 iwr = int(dwr/h)
-Ntraj = 75
+Ntraj = 150
 
 #%%
 
@@ -52,9 +57,12 @@ names = ["Time","x","y","theta","dif","vx","vy","v","id_traj"]
 df = pd.DataFrame(columns=names)
 th_ic0 = np.random.uniform(np.pi/2-0.5,np.pi/2)
 for i in range(Ntraj):
-    ci = np.array([0,0,th_ic0,0,0]) #TODO: initial condition from the trajectory
-    ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
-    ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    #CI extended
+    #ci = np.array([0,0,th_ic0,0,0]) 
+    #ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    #ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    #CI regular
+    ci = np.array([0,0,th_ic0])
     data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,1)
     xindx = np.arange(0,len(ci),len(ci))
     yindx = np.arange(1,len(ci),len(ci))
@@ -78,7 +86,7 @@ fig, ax = plt.subplots(ncols=1,nrows=4,figsize=(11,6*4))
 counter = 0
 for idx in df["id_traj"].unique():
     traj = df[df["id_traj"]==idx]
-    if np.any(traj["x"].abs() > 50): continue
+    if np.any(traj["x"].abs() > 100): continue
     ax[0].plot(traj.x,traj.y)
     ax[0].set(xlabel="x",ylabel="y")
     ax[1].plot(traj.Time,traj.x)
@@ -88,11 +96,10 @@ for idx in df["id_traj"].unique():
     ax[3].plot(traj.Time,traj.theta)
     ax[3].set(xlabel="t",ylabel="th")
     counter += 1
+ax[0].text(-40,10,"conv {:.2f}".format(counter/Ntraj))
 ax[0].set(xlim=[-60,60])
 ax[1].set(ylim=[-60,60])
-#%%
-print(counter)
-#%%
+
 
 maxs_x = df.groupby("id_traj")["x"].max()
 maxs_y = df.groupby("id_traj")["y"].max()
@@ -104,12 +111,16 @@ plt.axhline(np.mean(maxs_x))
 print(np.mean(maxs_x))
 
 #%%
-name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-gamma_{gamma}-time_{t_fin}"
+#Name extended
+#name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-gamma_{gamma}-time_{t_fin}"
+#Name regular
+name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 
 if not(os.path.exists(data_dir)): os.mkdir(data_dir)
 df.to_csv(os.path.join(data_dir,f"Synthetic-{name}.dat"),index=False)
-
+fig.savefig(os.path.join(data_dir,f"Synthetic_{name}.png"),format="png",
+        facecolor="w",edgecolor="w",bbox_inches="tight")
 #%%
 ths = []
 xs = []
