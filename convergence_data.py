@@ -16,7 +16,7 @@ traj_dir = os.path.join(proj_path,"Data","Ant_data")
 #data_file = "2022_Transformed_nothetarnage_width_50-frames_40.dat"
 data_file = "2022_Transformed_nomin_width_50-frames_40.dat"
 datadf = pd.read_csv(os.path.join(traj_dir,data_file))
-main_dir = os.path.join(proj_path,"Data","Fits","Larger_sigma")
+main_dir = os.path.join(proj_path,"Data","Fits","LongNoPause")
 folders = os.listdir(main_dir)
 converged = []
 id_traj = datadf["id_traj"].unique()
@@ -239,7 +239,7 @@ for name in folders:
 
 
 #%%
-main_dir = os.path.join(proj_path,"Data","Fits","Cut")
+main_dir = os.path.join(proj_path,"Data","Fits","Larger_sigma")
 elements = os.listdir(main_dir)
 folders = [element for element in elements if os.path.isdir(os.path.join(main_dir, element))]
 converged = []
@@ -277,7 +277,7 @@ for name in folders:
     hatR,Se = convergence(chains,nparam,C,M)
     print(hatR,Se)
 
-    if np.all(hatR < 1.2): converged.append(name)
+    if np.all(hatR < 1.1): converged.append(name)
 
 #%%
 
@@ -344,14 +344,15 @@ for i,name in enumerate(folders):
     ax.scatter(i,day_traj["$|v|$"].max() - day_traj["$|v|$"].min(),color=color)
 #%%
 ncols = 3
-nrows = len(converged)//ncols+len(converged)%ncols - 1 
+nbins = 15
+nrows = len(converged)//ncols+len(converged)%ncols + 1 
 fig,axs = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
 plt.suptitle(r"$\beta$")
 old_dir = os.path.join(proj_path,"Data","Fits","Fitsnomin","mcmc","Data","Fits")
 means = []
 for k,name in enumerate(converged):
     data_dir = os.path.join(main_dir,name)
-    #data_dir = os.path.join(old_dir,name)
+    data_dir = os.path.join(old_dir,name)
     id_traj = datadf["id_traj"].unique()
     file_name = "Chains-"
     df = pd.read_csv(os.path.join(data_dir,file_name+name+".dat"))
@@ -377,7 +378,7 @@ for k,name in enumerate(converged):
         for i in range(C):
             dict_params[j][1] = chains[i][j]
     xx = dict_params[0][1]
-    height, _, _ = axs[k//ncols][k%ncols].hist(xx,bins=nbins,density=True)
+    height, _, _ = axs[k//ncols][k%ncols].hist(xx,bins=nbins,density=True,color=colors[2])
     m = np.mean(xx)
     sd = np.std(xx)
     ci = [m-sd,m+sd]
@@ -386,16 +387,16 @@ for k,name in enumerate(converged):
     axs[k//ncols][k%ncols].fill_betweenx(ylims, ci[0], ci[1], color='black', alpha=0.35) 
     axs[k//ncols][k%ncols].text(0.6,0.8,name,transform=axs[k//ncols][k%ncols].transAxes)
     means.append(m)
-axs[-1][-1].hist(means,bins=10,density=True,color=colors[1])
+axs[-1][-1].hist(means,bins=10,density=True,color=colors[3])
 axs[-1][-1].text(0.6,0.8,"Total",transform=axs[-1][-1].transAxes)
-filename = f"bs.png"
+filename = f"bs_old.png"
 fig.savefig(os.path.join(main_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
 
 
 # %%
 ncols = 3
-nrows = len(converged)//ncols+len(converged)%ncols - 1 
+nrows = len(converged)//ncols+len(converged)%ncols + 1 
 fig,axs = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
 for k,name in enumerate(converged):
     ax = axs[k//ncols][k%ncols]
@@ -406,17 +407,17 @@ for k,name in enumerate(converged):
     day_traj = datadf[datadf["id_traj"]==id]    
     xx = day_traj["x"]
     yy = day_traj["y"]
-    ax.plot(xx,yy,color=colors[2],label="Old",lw=7)
-    ax.plot(xx[:-20],yy[:-20],color=colors[0],label="Cut",lw=7,ls="--")
+    #ax.plot(xx,yy,color=colors[2],label="Old",lw=7)
+    ax.plot(xx[:-20],yy[:-20],color=colors[0]) #,label="Cut",lw=7,ls="--")
     ax.text(0.6,0.8,name,transform=ax.transAxes)
-    ax.legend(loc="best")
+    #ax.legend(loc="best")
 # %%
 filename = "Trajs.png"
 fig.savefig(os.path.join(main_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
 # %%
 ncols = 3
-nrows = len(converged)//ncols+len(converged)%ncols - 1 
+nrows = len(converged)//ncols+len(converged)%ncols + 1 
 fig_1,axs_1 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
 fig_2,axs_2 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))
 fig_3,axs_3 = plt.subplots(ncols=ncols,nrows=nrows,figsize=(11*ncols,6*nrows))

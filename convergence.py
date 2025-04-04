@@ -14,13 +14,13 @@ colors = prop_cycle.by_key()['color']
 
 # %%
 #1) Load observations
-beta, delta, Sigma, gamma, t_fin = 1.5,0.1,6.5,3,200
-idx = 2
+beta, delta, Sigma, gamma, t_fin = 1.5,0.1,70,5,200
+idx = 3
 name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-gamma_{gamma}-time_{t_fin}"
 traj_dir = os.path.join(proj_path,"Data","Synthetic",name)
-data_dir = os.path.join(traj_dir) #,"Only_gamma_largerspace")
+data_dir = os.path.join(traj_dir) #,"larger_gamma") #,"Only_gamma_largerspace")
 data_file= f"Synthetic-{name}.dat"
-datadf = pd.read_csv(os.path.join(traj_dir,data_file))
+datadf = pd.read_csv(os.path.join(traj_dir,data_file))  
 id_traj = datadf["id_traj"].unique()
 Ntrajs = len(id_traj)
 len_trajs = len(datadf[datadf["id_traj"]==id_traj[0]])
@@ -36,7 +36,7 @@ ntraj_data = len(id_traj)
 #%%
 
 df = pd.read_csv(os.path.join(data_dir,f"Chains-traj_{idx}.dat"))
-nparam = 1
+nparam = 2
 C = int(len(df.columns)/(nparam+2))
 M = len(df)
 chains = []
@@ -50,33 +50,34 @@ for i in range(C):
 hatR,Se = convergence(chains,nparam,C,M)
 print(hatR,Se)
 #%%
-idx=1
+#idx = 3
 fig,ax = plt.subplots(ncols=1,nrows=1,figsize=(11,6))
 ax.plot(data[idx,0,:],data[idx,1,:])
 ax.set(xlabel=r"$x$",ylabel=r"$y$")
 filename = f"traj_{idx}.png"
-#fig.savefig(os.path.join(data_dir,filename),format="png",
-#            facecolor="w",edgecolor="w",bbox_inches="tight")
+fig.savefig(os.path.join(data_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
 
 #%%
 fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-#fig1,ax1=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
-ax.set(ylabel=r"$\gamma$",xlabel="MC step")
-#ax1.set(ylabel=r"$\delta$",xlabel="MC step")
+fig1,ax1=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
+ax.set(ylabel=r"$\beta$",xlabel="MC step")
+ax1.set(ylabel=r"$\gamma$",xlabel="MC step")
 betas = np.zeros(M*C)
 deltas = np.zeros(M*C)
 for i in range(C):
     ax.plot(chains[i][0])
-    #ax1.plot(chains[i][1])
+    ax1.plot(chains[i][1])
     betas[i*M:(i+1)*M] = chains[i][0]
-    #deltas[i*M:(i+1)*M]= chains[i][1]
+    deltas[i*M:(i+1)*M]= chains[i][1]
 plt.show()
-filename = f"Chains_gamma-traj_{idx}.png"
+filename = f"Chains_beta-traj_{idx}.png"
 fig.savefig(os.path.join(data_dir,filename),format="png",
             facecolor="w",edgecolor="w",bbox_inches="tight")
+filename = f"Chains_gamma-traj_{idx}.png"
 #filename = f"Chains_delta-traj_{idx}.png"
-#fig1.savefig(os.path.join(data_dir,filename),format="png",
-#            facecolor="w",edgecolor="w",bbox_inches="tight")
+fig1.savefig(os.path.join(data_dir,filename),format="png",
+            facecolor="w",edgecolor="w",bbox_inches="tight")
 #%%
 #fig,ax=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
 #fig1,ax1=plt.subplots(ncols=1,nrows=1,figsize=(11,6))
@@ -123,7 +124,8 @@ def plot(xx,xlabel,nbins,filename):
     return fig, ax
 
 nbins = 30
-plot(betas,r"$\gamma$",nbins,f"Distr_gamma-traj_{idx}.png")
+plot(betas,r"$\beta$",nbins,f"Distr_beta-traj_{idx}.png")
+plot(deltas,r"$\gamma$",nbins,f"Distr_gamma-traj_{idx}.png")
 #plot(deltas,r"$\delta$",nbins,f"Distr_delta-traj_{idx}.png")
 #plot(sigmas,r"$\sigma$",nbins,f"Distr_sigma-traj_{idx}.png")
 #fig, ax = plot(ls,r"$l$",nbins,f"Distr_l-traj_{idx}.png")

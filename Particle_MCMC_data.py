@@ -81,17 +81,21 @@ if distr_phi == 0: phi = (second_phi + first_phi)*0.5
 elif distr_phi == 1: phi = first_phi
 
 init_params = [
-    np.array([first_beta ,first_delta ,Sigma,l,phi]),
-    np.array([first_beta ,second_delta,Sigma,l,phi]),
-    np.array([second_beta,first_delta ,Sigma,l,phi]),
-    np.array([second_beta,second_delta,Sigma,l,phi]),
+    np.array([first_beta ,first_delta ,first_sigma*(1+0.1),l,phi]),
+    np.array([first_beta ,second_delta,Sigma*(1-0.25),l,phi]),
+    np.array([second_beta,first_delta ,Sigma*(1+0.25),l,phi]),
+    np.array([second_beta,second_delta,second_sigma*(1-0.1),l,phi]),
 ] #Init the four chains at the edges of the parameter dsitr, to explore space. 
 
 
 mean_kern = np.zeros(n_estim)
 cov_kern = np.zeros((n_estim,n_estim))
 for i in range(n_estim):
-    cov_kern[i][i] = prior_var(prior_pars[i])/frac_var_obs
+    if i == 2:
+        cov_kern[i][i] = prior_var(prior_pars[i])/(frac_var_obs+frac_var_obs*0.5)
+    else:
+        cov_kern[i][i] = prior_var(prior_pars[i])/frac_var_obs
+
 cov_kern = np.sqrt(cov_kern)
 obs_li_param = np.array([obs_li_param_x,obs_li_param_y,obs_li_param_th*np.pi/180])
 
@@ -100,17 +104,17 @@ for item in id_list:
     if item[0] == "#": continue
     id_traj = item.strip("\n")
     id_folder = id_traj
-    print(f"start with traj {id_traj}")
-    out_dir_list = ["Data","Fits","Larger_sigma",f"Traj_{id_folder}"]
+    day_traj = datadf[datadf["id_traj"]==id_traj]   #[:-20] #TODO: cut of the last points!!!!!!!!!!!!!!!!!!!!!
+    len_trajs = len(day_traj)
+    print(f"start with traj {id_traj} of length {len_trajs}")
+    if len(day_traj) == 0: continue
+
+    out_dir_list = ["Data","Fits","LongNoPause",f"Traj_{id_folder}"]
     out_dir = proj_path
     for directory in out_dir_list:
         out_dir = os.path.join(out_dir,directory)
         if not(os.path.exists(out_dir)): os.mkdir(out_dir)
-    day_traj = datadf[datadf["id_traj"]==id_traj]   #[:-20] #TODO: cut of the last points!!!!!!!!!!!!!!!!!!!!!
-    len_trajs = len(day_traj)
-    print(len_trajs)
     data = np.zeros((4,len_trajs))
-    if len(day_traj) == 0: continue
     data[0] = day_traj["x"].values     
     data[1] = day_traj["y"].values     
     data[2] = day_traj["theta"].values 

@@ -4,7 +4,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from numba import get_num_threads, set_num_threads
-import lib_model as lib
+import lib_model_extended as lib
 import pandas as pd
 
 #%%
@@ -31,19 +31,19 @@ v = 6
 l = 12.8
 phi = 0.95
 Mu = 0.0
-Sigma = 6.5
+Sigma = 70
 th0 = 1.0
 delta = 0.1
 beta = 1.5
 gamma = 5
 
 #Model extended
-#param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #"known" model parameters
-#ks = np.array([gamma]) #This is what we want to inffer!
+param = np.array([v,Mu,th0,Sigma,l,phi,delta,beta]) #"known" model parameters
+ks = np.array([gamma]) #This is what we want to inffer!
 
 #Regular
-param = np.array([v,Mu,th0,Sigma,l,phi])
-ks = np.array([beta,delta])
+#param = np.array([v,Mu,th0,Sigma,l,phi])
+#ks = np.array([beta,delta])
 
 #Simulation setup.
 h = 0.01 #time step
@@ -58,11 +58,11 @@ df = pd.DataFrame(columns=names)
 th_ic0 = np.random.uniform(np.pi/2-0.5,np.pi/2)
 for i in range(Ntraj):
     #CI extended
-    #ci = np.array([0,0,th_ic0,0,0]) 
-    #ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
-    #ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    ci = np.array([0,0,th_ic0,0,0]) 
+    ci[3] = lib.Cl(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
+    ci[4] = lib.Cr(ci[0],ci[1],ci[2],lib.phtrail,param,ks)
     #CI regular
-    ci = np.array([0,0,th_ic0])
+    #ci = np.array([0,0,th_ic0])
     data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,1)
     xindx = np.arange(0,len(ci),len(ci))
     yindx = np.arange(1,len(ci),len(ci))
@@ -112,9 +112,9 @@ print(np.mean(maxs_x))
 
 #%%
 #Name extended
-#name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-gamma_{gamma}-time_{t_fin}"
+name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-gamma_{gamma}-time_{t_fin}"
 #Name regular
-name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-time_{t_fin}"
+#name = f"beta_{beta}-delta_{delta}-sigma_{Sigma}-time_{t_fin}"
 data_dir = os.path.join(proj_path,"Data","Synthetic",name)
 
 if not(os.path.exists(data_dir)): os.mkdir(data_dir)
