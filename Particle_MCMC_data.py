@@ -100,16 +100,23 @@ cov_kern = np.sqrt(cov_kern)
 obs_li_param = np.array([obs_li_param_x,obs_li_param_y,obs_li_param_th*np.pi/180])
 
 
+#%%
 for item in id_list:
     if item[0] == "#": continue
     id_traj = item.strip("\n")
     id_folder = id_traj
-    day_traj = datadf[datadf["id_traj"]==id_traj]   #[:-20] #TODO: cut of the last points!!!!!!!!!!!!!!!!!!!!!
+    day_traj = datadf[datadf["id_traj"]==id_traj]
+    if len(day_traj) == 0: continue
+    print(f"start with traj {id_traj}")
+    vel = day_traj["$|v|$"].mean()
+    print(vel)
+    fin = int(50/vel)                        #take out the last points of the trajectory.
+    day_traj = day_traj[:-fin].copy()
     len_trajs = len(day_traj)
-    print(f"start with traj {id_traj} of length {len_trajs}")
+    print(f"\tLength: {len_trajs}, speed: {vel}")
     if len(day_traj) == 0: continue
 
-    out_dir_list = ["Data","Fits","LongNoPause",f"Traj_{id_folder}"]
+    out_dir_list = ["Data","Fits","Noend_Nopause",f"Traj_{id_folder}"]
     out_dir = proj_path
     for directory in out_dir_list:
         out_dir = os.path.join(out_dir,directory)

@@ -21,7 +21,7 @@ def kl(p,q,binsp,binsq):
 
 #%%
 
-numthreads = 12
+numthreads = 2
 set_num_threads(numthreads)
 print("Using", numthreads)
 
@@ -64,18 +64,23 @@ iwr = int(dwr/h)
 filtered_ids = datadf.groupby("id_traj")["Time"].max()
 filtered_ids = filtered_ids[filtered_ids > 100].index
 nindata = len(filtered_ids)
-max_trials_traj = 1000 
-Ntraj = nindata*max_trials_traj
+max_trials_traj_0 = 1000 
+Ntraj = nindata*max_trials_traj_0
 
 #result_df = datadf[(datadf["id_traj"].isin(filtered_ids)) & (datadf["Time"] == 0)][["id_traj", "x", "y","theta"]]
 result_df = datadf[(datadf["id_traj"].isin(filtered_ids))][["id_traj", "Time", "x", "y", "theta", "$|v|$"]]
 
 #%%
-betas = [0.5,0.75] #,1.5,2,5,7.5,15]
-sigmas = [50,75]
-for delta in [0.175]:
+betas = [0.5,0.75,1.5,2,5,7.5,15]
+sigmas = [25,50,75,100]
+factor = 2
+for delta in [0.0,0.1,0.15,0.175,0.2,0.25]:
+    if delta == 0.0:
+        max_trials_traj = 1
+    else :
+        max_trials_traj = max_trials_traj_0
     print(delta)
-    out_folders = ["Data","Comparisons","Convergence","Regular",f"delta_{delta}"]
+    out_folders = ["Data","Comparisons","Convergence",f"v_{factor}","Regular_novel",f"delta_{delta}"]
     out_path = proj_path
     for folder in out_folders:
         out_path = os.path.join(out_path,folder)
@@ -87,7 +92,7 @@ for delta in [0.175]:
     for m,beta in enumerate(betas):
         print(beta)
         for n,sigma in enumerate(sigmas):
-            print(f"beta = {beta}, sigma = {sigma} ########################################")
+            print(f"sigma = {sigma}, delta = {delta}, beta = {beta}, sigma = {sigma} ########################################")
             param = np.array([v,Mu,th0])
             ks = np.array([beta, delta, sigma,l,phi])
 
@@ -125,7 +130,7 @@ for delta in [0.175]:
                 th_ic0 = dfinit["theta"].iloc[0]
                 t_fin = dfinit["Time"].max()
                 v = dfinit["$|v|$"].mean()
-                param[0] = v
+                param[0] = v*factor
                 ci = np.array([x0,y0,th_ic0])
                 data = lib.multiple_traj(ci,h,np.sqrt(h),Nt,iwr,param,ks,1)
                 xindx = np.arange(0,len(ci),len(ci))
